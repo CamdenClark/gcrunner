@@ -27,7 +27,7 @@ echo "=== Installing cmd packages ==="
 # From: toolset.apt.cmd_packages
 sudo apt-get install -y --no-install-recommends \
   acl aria2 binutils bison brotli coreutils file findutils \
-  flex ftp haveged lz4 m4 mediainfo netcat net-tools \
+  flex ftp haveged lz4 m4 mediainfo netcat-openbsd net-tools \
   p7zip-full parallel patchelf pigz pollinate rsync \
   shellcheck sphinxsearch sqlite3 ssh sshpass sudo \
   swig telnet time zip
