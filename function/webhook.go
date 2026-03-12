@@ -131,8 +131,7 @@ func handleQueued(ctx context.Context, event WorkflowJobEvent) error {
 	}
 
 	log.Printf("Job %d: creating VM with labels %+v", event.WorkflowJob.ID, labels)
-	// TODO: create Compute Engine VM
-	return nil
+	return createRunnerVM(ctx, event, labels)
 }
 
 func handleCompleted(ctx context.Context, event WorkflowJobEvent) error {
@@ -164,10 +163,21 @@ func verifySignature(payload []byte, signature, secret string) bool {
 type WorkflowJobEvent struct {
 	Action      string      `json:"action"`
 	WorkflowJob WorkflowJob `json:"workflow_job"`
+	Repository  Repository  `json:"repository"`
 }
 
 type WorkflowJob struct {
 	ID     int64    `json:"id"`
 	RunID  int64    `json:"run_id"`
 	Labels []string `json:"labels"`
+}
+
+type Repository struct {
+	FullName string         `json:"full_name"`
+	Owner    RepositoryOwner `json:"owner"`
+	Name     string         `json:"name"`
+}
+
+type RepositoryOwner struct {
+	Login string `json:"login"`
 }
