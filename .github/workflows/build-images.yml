@@ -58,19 +58,6 @@ jobs:
         working-directory: images
         run: packer build -var-file="${{ matrix.family }}.pkrvars.hcl" -var "project_id=${{ vars.PACKER_PROJECT_ID }}" .
 
-      - name: Make image public
-        run: |
-          LATEST_IMAGE=$(gcloud compute images list \
-            --project="${{ vars.PACKER_PROJECT_ID }}" \
-            --filter="family=gcrunner-${{ matrix.family }}" \
-            --sort-by="~creationTimestamp" \
-            --limit=1 \
-            --format="value(name)")
-          gcloud compute images add-iam-policy-binding "${LATEST_IMAGE}" \
-            --project="${{ vars.PACKER_PROJECT_ID }}" \
-            --member="allUsers" \
-            --role="roles/compute.imageUser"
-
       - name: Smoke test
         run: |
           LATEST_IMAGE=$(gcloud compute images list \
