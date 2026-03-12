@@ -1,0 +1,14 @@
+name: Test gcrunner
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: gcrunner=${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hello
+        run: echo "Hello from gcrunner!"
