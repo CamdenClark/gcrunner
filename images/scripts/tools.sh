@@ -3,71 +3,34 @@ set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
-# Install packages that match the official runner images (actions/runner-images)
-# Vital + common packages from their toolset
-echo "=== Installing essential packages ==="
-
 sudo apt-get update
-sudo apt-get install -y \
-  acl \
-  aria2 \
-  autoconf \
-  automake \
-  binutils \
-  bison \
-  brotli \
-  bzip2 \
-  coreutils \
-  dnsutils \
-  dpkg-dev \
-  fakeroot \
-  flex \
-  ftp \
-  gnupg2 \
-  iproute2 \
-  iputils-ping \
-  libc++-dev \
-  libc++abi-dev \
-  libffi-dev \
-  libgbm-dev \
-  libgconf-2-4 \
-  libicu-dev \
-  libkrb5-3 \
-  liblttng-ust1 \
-  libssl-dev \
-  libtool \
-  libyaml-dev \
-  locales \
-  lz4 \
-  m4 \
-  mediainfo \
-  mercurial \
-  net-tools \
-  netcat-openbsd \
-  openssh-client \
-  p7zip-full \
-  parallel \
-  patchelf \
-  pigz \
-  pkg-config \
-  python-is-python3 \
-  rpm \
-  rsync \
-  shellcheck \
-  sqlite3 \
-  ssh \
-  sudo \
-  swig \
-  tar \
-  telnet \
-  texinfo \
-  tk \
-  tzdata \
-  xvfb \
-  xz-utils \
-  zip \
-  zlib1g-dev \
-  zsync
+
+# Packages below are taken directly from the official GitHub runner images
+# (actions/runner-images) toolset JSON. This keeps us compatible.
+
+echo "=== Installing vital packages ==="
+# From: toolset.apt.vital_packages
+sudo apt-get install -y --no-install-recommends \
+  bzip2 curl g++ gcc make jq tar unzip wget
+
+echo "=== Installing common packages ==="
+# From: toolset.apt.common_packages
+sudo apt-get install -y --no-install-recommends \
+  autoconf automake dbus dnsutils dpkg dpkg-dev fakeroot \
+  fonts-noto-color-emoji gnupg2 iproute2 iputils-ping \
+  libyaml-dev libtool libssl-dev libsqlite3-dev locales \
+  mercurial openssh-client p7zip-rar pkg-config \
+  python-is-python3 rpm texinfo tk tree tzdata upx \
+  xvfb xz-utils zsync
+
+echo "=== Installing cmd packages ==="
+# From: toolset.apt.cmd_packages
+sudo apt-get install -y --no-install-recommends \
+  acl aria2 binutils bison brotli coreutils file findutils \
+  flex ftp haveged lz4 m4 mediainfo netcat net-tools \
+  p7zip-full parallel patchelf pigz pollinate rsync \
+  shellcheck sphinxsearch sqlite3 ssh sshpass sudo \
+  swig telnet time zip
 
 echo "=== Installing Docker ==="
 
