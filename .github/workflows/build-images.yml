@@ -48,15 +48,15 @@ jobs:
 
       - name: Init Packer
         working-directory: images
-        run: packer init packer.pkr.hcl
+        run: packer init .
 
       - name: Validate Packer
         working-directory: images
-        run: packer validate -var-file="${{ matrix.family }}.pkrvars.hcl" -var "project_id=${{ vars.PACKER_PROJECT_ID }}" packer.pkr.hcl
+        run: packer validate -var-file="${{ matrix.family }}.pkrvars.hcl" -var "project_id=${{ vars.PACKER_PROJECT_ID }}" .
 
       - name: Build Image
         working-directory: images
-        run: packer build -var-file="${{ matrix.family }}.pkrvars.hcl" -var "project_id=${{ vars.PACKER_PROJECT_ID }}" packer.pkr.hcl
+        run: packer build -var-file="${{ matrix.family }}.pkrvars.hcl" -var "project_id=${{ vars.PACKER_PROJECT_ID }}" .
 
       - name: Make image public
         run: |
