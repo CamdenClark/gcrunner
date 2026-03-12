@@ -20,18 +20,7 @@ REPO_URL="%s"
 RUNNER_NAME="%s"
 LABELS="%s"
 
-# Create runner user
-useradd -m -s /bin/bash runner
 cd /home/runner
-
-# Download latest runner
-RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | grep '"tag_name"' | sed 's/.*"v\(.*\)".*/\1/')
-curl -sL "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" -o runner.tar.gz
-tar xzf runner.tar.gz
-rm runner.tar.gz
-
-# Install dependencies
-./bin/installdependencies.sh
 
 # Configure as ephemeral runner
 chown -R runner:runner /home/runner
@@ -100,7 +89,7 @@ func createInstance(ctx context.Context, name, zone string, labels *RunnerLabels
 
 	project := os.Getenv("GCP_PROJECT")
 	machineType := fmt.Sprintf("zones/%s/machineTypes/%s", zone, labels.Machine)
-	sourceImage := "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64"
+	sourceImage := resolveSourceImage(labels.Image)
 
 	diskSizeGB := parseDiskSize(labels.Disk)
 
@@ -160,6 +149,24 @@ func createInstance(ctx context.Context, name, zone string, labels *RunnerLabels
 
 	// Wait for the operation to complete
 	return op.Wait(ctx)
+}
+
+func resolveSourceImage(image string) string {
+	imageProject := os.Getenv("GCRUNNER_IMAGE_PROJECT")
+	if imageProject == "" {
+		imageProject = "gcrunner-images"
+	}
+	imageMap := map[string]string{
+		"ubuntu24-full-x64": "gcrunner-ubuntu2404-x64",
+		"ubuntu22-full-x64": "gcrunner-ubuntu2204-x64",
+	}
+	if family, ok := imageMap[image]; ok {
+		return fmt.Sprintf("projects/%s/global/images/family/%s", imageProject, family)
+	}
+	if strings.Contains(image, "/") {
+		return image
+	}
+	return "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64"
 }
 
 func parseDiskSize(disk string) int64 {
