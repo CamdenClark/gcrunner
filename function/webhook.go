@@ -50,7 +50,7 @@ func getSecret(ctx context.Context, name string) (string, error) {
 		return "", fmt.Errorf("failed to access secret %s: %w", name, err)
 	}
 
-	return string(result.Payload.Data), nil
+	return strings.TrimSpace(string(result.Payload.Data)), nil
 }
 
 func init() {
@@ -72,6 +72,8 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Received %s request from %s, event: %s", r.Method, r.RemoteAddr, r.Header.Get("X-GitHub-Event"))
+
 	// Verify HMAC signature using secret from Secret Manager
 	secret, err := getSecret(ctx, "gcrunner-webhook-secret")
 	if err != nil {
@@ -80,9 +82,11 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	if secret != "" {
 		sig := r.Header.Get("X-Hub-Signature-256")
 		if !verifySignature(body, sig, secret) {
+			log.Printf("Signature verification failed")
 			http.Error(w, "invalid signature", http.StatusUnauthorized)
 			return
 		}
+		log.Printf("Signature verified")
 	}
 
 	event := r.Header.Get("X-GitHub-Event")
