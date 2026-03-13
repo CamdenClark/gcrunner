@@ -34,11 +34,6 @@ sudo -u runner ./config.sh \
 
 # Run
 sudo -u runner ./run.sh
-
-# Self-destruct after job completes
-ZONE=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | awk -F/ '{print $NF}')
-INSTANCE=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/name)
-gcloud compute instances delete "${INSTANCE}" --zone="${ZONE}" --quiet
 `
 
 func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerLabels) error {
@@ -149,6 +144,41 @@ func createInstance(ctx context.Context, name, zone string, labels *RunnerLabels
 
 	// Wait for the operation to complete
 	return op.Wait(ctx)
+}
+
+func deleteRunnerVM(ctx context.Context, name string) error {
+	client, err := compute.NewInstancesRESTClient(ctx)
+	if err != nil {
+		return fmt.Errorf("create compute client: %w", err)
+	}
+	defer client.Close()
+
+	project := os.Getenv("GCP_PROJECT")
+	region := os.Getenv("GCE_REGION")
+	if region == "" {
+		region = "us-central1"
+	}
+
+	zones := []string{region + "-a", region + "-b", region + "-c", region + "-f"}
+
+	for _, zone := range zones {
+		op, err := client.Delete(ctx, &computepb.DeleteInstanceRequest{
+			Project:  project,
+			Zone:     zone,
+			Instance: name,
+		})
+		if err != nil {
+			continue
+		}
+		if err := op.Wait(ctx); err != nil {
+			continue
+		}
+		log.Printf("Deleted VM %s in %s", name, zone)
+		return nil
+	}
+
+	log.Printf("VM %s not found in any zone, may have already been deleted", name)
+	return nil
 }
 
 func resolveSourceImage(image string) string {

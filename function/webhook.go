@@ -140,9 +140,9 @@ func handleCompleted(ctx context.Context, event WorkflowJobEvent) error {
 		return nil
 	}
 
-	log.Printf("Job %d: completed, ensuring VM cleanup", event.WorkflowJob.ID)
-	// TODO: force-delete VM if still running
-	return nil
+	instanceName := fmt.Sprintf("gcrunner-%d-%d", event.WorkflowJob.RunID, event.WorkflowJob.ID)
+	log.Printf("Job %d: completed, deleting VM %s", event.WorkflowJob.ID, instanceName)
+	return deleteRunnerVM(ctx, instanceName)
 }
 
 func verifySignature(payload []byte, signature, secret string) bool {
