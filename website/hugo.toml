@@ -1,0 +1,10 @@
+baseURL = 'https://gcrunner.website/'
+languageCode = 'en-us'
+title = 'gcrunner'
+theme = 'hugo-book'
+
+[params]
+  BookTheme = 'auto'
+  BookToC = true
+  BookRepo = 'https://github.com/camdenclark/gcrunner'
+  BookSection = 'docs'
