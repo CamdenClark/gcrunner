@@ -1,0 +1,77 @@
+name: Test cache server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  save-cache:
+    runs-on: gcrunner=${{ github.run_id }}/machine=e2-medium
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check cache server is running
+        run: curl -sf http://localhost:8787/health
+
+      - name: Check cache env vars
+        run: |
+          echo "ACTIONS_RESULTS_URL=$ACTIONS_RESULTS_URL"
+          echo "ACTIONS_CACHE_SERVICE_V2=$ACTIONS_CACHE_SERVICE_V2"
+
+      - name: Create test data
+        run: |
+          mkdir -p test-cache-dir
+          echo "cached-at-$(date +%s)" > test-cache-dir/data.txt
+          cat test-cache-dir/data.txt
+
+      - name: Save cache
+        uses: actions/cache/save@v4
+        with:
+          path: test-cache-dir
+          key: test-cache-${{ github.run_id }}
+
+  restore-cache:
+    needs: save-cache
+    runs-on: gcrunner=${{ github.run_id }}-restore/machine=e2-medium
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check cache server is running
+        run: curl -sf http://localhost:8787/health
+
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: test-cache-dir
+          key: test-cache-${{ github.run_id }}
+
+      - name: Verify restored data
+        run: |
+          test -f test-cache-dir/data.txt
+          echo "Restored:"
+          cat test-cache-dir/data.txt
+
+  test-setup-node:
+    runs-on: gcrunner=${{ github.run_id }}-node/machine=e2-medium
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check cache server is running
+        run: curl -sf http://localhost:8787/health
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify node
+        run: node --version
+
+      - name: Create package.json and install
+        run: |
+          echo '{"dependencies":{"lodash":"4.17.21"}}' > package.json
+          npm install
+
+      - name: Save node_modules cache
+        uses: actions/cache/save@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.run_id }}

@@ -19,6 +19,7 @@ RUNNER_TOKEN="%s"
 REPO_URL="%s"
 RUNNER_NAME="%s"
 LABELS="%s"
+CACHE_BUCKET="%s"
 
 cd /home/runner
 
@@ -32,8 +33,24 @@ sudo -u runner ./config.sh \
   --ephemeral \
   --unattended
 
+# Start cache server if bucket is configured
+if [ -n "${CACHE_BUCKET}" ] && [ -x /usr/local/bin/cache-server ]; then
+  REPO_OWNER=$(echo "${REPO_URL}" | sed 's|https://github.com/||' | cut -d/ -f1)
+  REPO_NAME=$(echo "${REPO_URL}" | sed 's|https://github.com/||' | cut -d/ -f2)
+  /usr/local/bin/cache-server \
+    -bucket "${CACHE_BUCKET}" \
+    -owner "${REPO_OWNER}" \
+    -repo "${REPO_NAME}" &
+  for i in $(seq 1 10); do
+    curl -sf http://localhost:8787/health && break
+    sleep 0.5
+  done
+  export ACTIONS_RESULTS_URL="http://localhost:8787/"
+  export ACTIONS_CACHE_SERVICE_V2=true
+fi
+
 # Run
-sudo -u runner ./run.sh
+sudo -u runner -E ./run.sh
 `
 
 func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerLabels) error {
@@ -51,7 +68,8 @@ func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerL
 	repoURL := fmt.Sprintf("https://github.com/%s", repoFullName)
 	runnerLabels := strings.Join(event.WorkflowJob.Labels, ",")
 
-	startupScript := fmt.Sprintf(startupScriptTemplate, regToken, repoURL, instanceName, runnerLabels)
+	cacheBucket := os.Getenv("GCRUNNER_CACHE_BUCKET")
+	startupScript := fmt.Sprintf(startupScriptTemplate, regToken, repoURL, instanceName, runnerLabels, cacheBucket)
 
 	region := os.Getenv("GCE_REGION")
 	if region == "" {
@@ -122,6 +140,14 @@ func createInstance(ctx context.Context, name, zone string, labels *RunnerLabels
 		},
 		Labels: map[string]string{
 			"gcrunner": "true",
+		},
+		ServiceAccounts: []*computepb.ServiceAccount{
+			{
+				Email: proto.String(fmt.Sprintf("gcrunner-runner@%s.iam.gserviceaccount.com", project)),
+				Scopes: []string{
+					"https://www.googleapis.com/auth/cloud-platform",
+				},
+			},
 		},
 	}
 

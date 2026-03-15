@@ -44,6 +44,18 @@ build {
     script = "scripts/tools.sh"
   }
 
+  provisioner "file" {
+    source      = "../cache-server/cache-server"
+    destination = "/tmp/cache-server"
+  }
+
+  provisioner "shell" {
+    inline = [
+      "sudo mv /tmp/cache-server /usr/local/bin/cache-server",
+      "sudo chmod +x /usr/local/bin/cache-server"
+    ]
+  }
+
   provisioner "shell" {
     script = "scripts/gcloud.sh"
   }
