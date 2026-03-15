@@ -21,8 +21,8 @@ sudo apt-get install -y \
   software-properties-common \
   apt-transport-https
 
-# Create runner user
-sudo useradd -m -s /bin/bash runner
+# Create runner user (skip if already exists)
+id runner &>/dev/null || sudo useradd -m -s /bin/bash runner
 echo "runner ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/runner
 
 # Set environment variables for GitHub Actions tool cache compatibility
