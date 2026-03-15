@@ -1,0 +1,273 @@
+name: Cache performance comparison
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # --- Cold cache runs (first time, nothing cached) ---
+  gcrunner-cold:
+    runs-on: gcrunner=${{ github.run_id }}-cold/machine=e2-medium
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Create project with many dependencies
+        run: |
+          mkdir -p test-project && cd test-project
+          cat > package.json << 'PKGJSON'
+          {
+            "dependencies": {
+              "react": "^19.0.0",
+              "react-dom": "^19.0.0",
+              "@tanstack/react-query": "^5.0.0",
+              "zod": "^3.23.0",
+              "date-fns": "^4.0.0",
+              "lodash-es": "^4.17.21",
+              "axios": "^1.7.0",
+              "zustand": "^5.0.0",
+              "immer": "^10.1.0",
+              "nanoid": "^5.0.0",
+              "clsx": "^2.1.0",
+              "tailwind-merge": "^2.5.0",
+              "framer-motion": "^11.0.0",
+              "@radix-ui/react-dialog": "^1.1.0",
+              "@radix-ui/react-dropdown-menu": "^2.1.0",
+              "@radix-ui/react-tooltip": "^1.1.0",
+              "lucide-react": "^0.460.0",
+              "recharts": "^2.13.0",
+              "typescript": "^5.6.0",
+              "@types/react": "^19.0.0",
+              "@types/lodash-es": "^4.17.12",
+              "prettier": "^3.4.0",
+              "eslint": "^9.0.0",
+              "vitest": "^2.1.0",
+              "@testing-library/react": "^16.0.0"
+            }
+          }
+          PKGJSON
+
+      - name: Install (cold)
+        run: |
+          cd test-project
+          START=$(date +%s%N)
+          bun install
+          END=$(date +%s%N)
+          ELAPSED=$(( (END - START) / 1000000 ))
+          echo "## Install time (cold): ${ELAPSED}ms" >> $GITHUB_STEP_SUMMARY
+
+      - name: Save cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            test-project/node_modules
+            ~/.bun/install/cache
+          key: bun-gcrunner-${{ hashFiles('test-project/package.json') }}
+
+  hosted-cold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Create project with many dependencies
+        run: |
+          mkdir -p test-project && cd test-project
+          cat > package.json << 'PKGJSON'
+          {
+            "dependencies": {
+              "react": "^19.0.0",
+              "react-dom": "^19.0.0",
+              "@tanstack/react-query": "^5.0.0",
+              "zod": "^3.23.0",
+              "date-fns": "^4.0.0",
+              "lodash-es": "^4.17.21",
+              "axios": "^1.7.0",
+              "zustand": "^5.0.0",
+              "immer": "^10.1.0",
+              "nanoid": "^5.0.0",
+              "clsx": "^2.1.0",
+              "tailwind-merge": "^2.5.0",
+              "framer-motion": "^11.0.0",
+              "@radix-ui/react-dialog": "^1.1.0",
+              "@radix-ui/react-dropdown-menu": "^2.1.0",
+              "@radix-ui/react-tooltip": "^1.1.0",
+              "lucide-react": "^0.460.0",
+              "recharts": "^2.13.0",
+              "typescript": "^5.6.0",
+              "@types/react": "^19.0.0",
+              "@types/lodash-es": "^4.17.12",
+              "prettier": "^3.4.0",
+              "eslint": "^9.0.0",
+              "vitest": "^2.1.0",
+              "@testing-library/react": "^16.0.0"
+            }
+          }
+          PKGJSON
+
+      - name: Install (cold)
+        run: |
+          cd test-project
+          START=$(date +%s%N)
+          bun install
+          END=$(date +%s%N)
+          ELAPSED=$(( (END - START) / 1000000 ))
+          echo "## Install time (cold): ${ELAPSED}ms" >> $GITHUB_STEP_SUMMARY
+
+      - name: Save cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            test-project/node_modules
+            ~/.bun/install/cache
+          key: bun-hosted-${{ hashFiles('test-project/package.json') }}
+
+  # --- Warm cache runs (restore from previous) ---
+  gcrunner-warm:
+    needs: gcrunner-cold
+    runs-on: gcrunner=${{ github.run_id }}-warm/machine=e2-medium
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Create project with many dependencies
+        run: |
+          mkdir -p test-project && cd test-project
+          cat > package.json << 'PKGJSON'
+          {
+            "dependencies": {
+              "react": "^19.0.0",
+              "react-dom": "^19.0.0",
+              "@tanstack/react-query": "^5.0.0",
+              "zod": "^3.23.0",
+              "date-fns": "^4.0.0",
+              "lodash-es": "^4.17.21",
+              "axios": "^1.7.0",
+              "zustand": "^5.0.0",
+              "immer": "^10.1.0",
+              "nanoid": "^5.0.0",
+              "clsx": "^2.1.0",
+              "tailwind-merge": "^2.5.0",
+              "framer-motion": "^11.0.0",
+              "@radix-ui/react-dialog": "^1.1.0",
+              "@radix-ui/react-dropdown-menu": "^2.1.0",
+              "@radix-ui/react-tooltip": "^1.1.0",
+              "lucide-react": "^0.460.0",
+              "recharts": "^2.13.0",
+              "typescript": "^5.6.0",
+              "@types/react": "^19.0.0",
+              "@types/lodash-es": "^4.17.12",
+              "prettier": "^3.4.0",
+              "eslint": "^9.0.0",
+              "vitest": "^2.1.0",
+              "@testing-library/react": "^16.0.0"
+            }
+          }
+          PKGJSON
+
+      - name: Restore cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            test-project/node_modules
+            ~/.bun/install/cache
+          key: bun-gcrunner-${{ hashFiles('test-project/package.json') }}
+
+      - name: Cache status
+        run: |
+          echo "Cache hit: ${{ steps.cache.outputs.cache-hit }}"
+          echo "Cache hit: ${{ steps.cache.outputs.cache-hit }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install (warm)
+        run: |
+          cd test-project
+          START=$(date +%s%N)
+          bun install
+          END=$(date +%s%N)
+          ELAPSED=$(( (END - START) / 1000000 ))
+          echo "## Install time (warm): ${ELAPSED}ms" >> $GITHUB_STEP_SUMMARY
+
+  hosted-warm:
+    needs: hosted-cold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Create project with many dependencies
+        run: |
+          mkdir -p test-project && cd test-project
+          cat > package.json << 'PKGJSON'
+          {
+            "dependencies": {
+              "react": "^19.0.0",
+              "react-dom": "^19.0.0",
+              "@tanstack/react-query": "^5.0.0",
+              "zod": "^3.23.0",
+              "date-fns": "^4.0.0",
+              "lodash-es": "^4.17.21",
+              "axios": "^1.7.0",
+              "zustand": "^5.0.0",
+              "immer": "^10.1.0",
+              "nanoid": "^5.0.0",
+              "clsx": "^2.1.0",
+              "tailwind-merge": "^2.5.0",
+              "framer-motion": "^11.0.0",
+              "@radix-ui/react-dialog": "^1.1.0",
+              "@radix-ui/react-dropdown-menu": "^2.1.0",
+              "@radix-ui/react-tooltip": "^1.1.0",
+              "lucide-react": "^0.460.0",
+              "recharts": "^2.13.0",
+              "typescript": "^5.6.0",
+              "@types/react": "^19.0.0",
+              "@types/lodash-es": "^4.17.12",
+              "prettier": "^3.4.0",
+              "eslint": "^9.0.0",
+              "vitest": "^2.1.0",
+              "@testing-library/react": "^16.0.0"
+            }
+          }
+          PKGJSON
+
+      - name: Restore cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            test-project/node_modules
+            ~/.bun/install/cache
+          key: bun-hosted-${{ hashFiles('test-project/package.json') }}
+
+      - name: Cache status
+        run: |
+          echo "Cache hit: ${{ steps.cache.outputs.cache-hit }}"
+          echo "Cache hit: ${{ steps.cache.outputs.cache-hit }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install (warm)
+        run: |
+          cd test-project
+          START=$(date +%s%N)
+          bun install
+          END=$(date +%s%N)
+          ELAPSED=$(( (END - START) / 1000000 ))
+          echo "## Install time (warm): ${ELAPSED}ms" >> $GITHUB_STEP_SUMMARY
+
+  # --- Summary ---
+  summary:
+    needs: [gcrunner-cold, gcrunner-warm, hosted-cold, hosted-warm]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Results
+        run: |
+          echo "## Cache Performance Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check individual job summaries above for timing details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scenario | Runner |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Cold install (no cache) | gcrunner vs hosted |" >> $GITHUB_STEP_SUMMARY
+          echo "| Warm install (cache hit) | gcrunner vs hosted |" >> $GITHUB_STEP_SUMMARY
