@@ -16,6 +16,60 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// generateJITConfig creates a just-in-time runner configuration via the GitHub API.
+// This replaces the need for config.sh on the VM — the returned blob contains all
+// credentials and config needed to start the runner directly with ./run.sh --jitconfig.
+func generateJITConfig(ctx context.Context, owner, repo, runnerName string, labels []string) (string, error) {
+	installationToken, err := getInstallationToken(ctx, owner)
+	if err != nil {
+		return "", fmt.Errorf("get installation token: %w", err)
+	}
+
+	body := struct {
+		Name          string   `json:"name"`
+		RunnerGroupID int      `json:"runner_group_id"`
+		Labels        []string `json:"labels"`
+		WorkFolder    string   `json:"work_folder"`
+	}{
+		Name:          runnerName,
+		RunnerGroupID: 1,
+		Labels:        labels,
+		WorkFolder:    "_work",
+	}
+	bodyJSON, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("marshal request body: %w", err)
+	}
+
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/actions/runners/generate-jitconfig", owner, repo)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(string(bodyJSON)))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+installationToken)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("GitHub returned %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		EncodedJITConfig string `json:"encoded_jit_config"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+	return result.EncodedJITConfig, nil
+}
+
 // getRegistrationToken gets a runner registration token for the given repo.
 func getRegistrationToken(ctx context.Context, owner, repo string) (string, error) {
 	installationToken, err := getInstallationToken(ctx, owner)

@@ -15,28 +15,15 @@ import (
 const startupScriptTemplate = `#!/bin/bash
 set -euo pipefail
 
-RUNNER_TOKEN="%s"
-REPO_URL="%s"
-RUNNER_NAME="%s"
-LABELS="%s"
+JIT_CONFIG="%s"
 CACHE_BUCKET="%s"
+REPO_OWNER="%s"
+REPO_NAME="%s"
 
 cd /home/runner
 
-# Configure as ephemeral runner
-chown -R runner:runner /home/runner
-sudo -u runner ./config.sh \
-  --url "${REPO_URL}" \
-  --token "${RUNNER_TOKEN}" \
-  --name "${RUNNER_NAME}" \
-  --labels "${LABELS}" \
-  --ephemeral \
-  --unattended
-
 # Start cache server if bucket is configured
 if [ -n "${CACHE_BUCKET}" ] && [ -x /usr/local/bin/cache-server ]; then
-  REPO_OWNER=$(echo "${REPO_URL}" | sed 's|https://github.com/||' | cut -d/ -f1)
-  REPO_NAME=$(echo "${REPO_URL}" | sed 's|https://github.com/||' | cut -d/ -f2)
   /usr/local/bin/cache-server \
     -bucket "${CACHE_BUCKET}" \
     -owner "${REPO_OWNER}" \
@@ -49,8 +36,8 @@ if [ -n "${CACHE_BUCKET}" ] && [ -x /usr/local/bin/cache-server ]; then
   export ACTIONS_CACHE_SERVICE_V2=true
 fi
 
-# Run
-sudo -u runner -E ./run.sh
+# Run with JIT config (skips config.sh entirely)
+sudo -u runner -E ./run.sh --jitconfig "${JIT_CONFIG}"
 `
 
 func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerLabels) error {
@@ -58,18 +45,16 @@ func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerL
 	repo := event.Repository.Name
 	repoFullName := event.Repository.FullName
 
-	// Get registration token
-	regToken, err := getRegistrationToken(ctx, owner, repo)
+	instanceName := fmt.Sprintf("gcrunner-%d-%d", event.WorkflowJob.RunID, event.WorkflowJob.ID)
+
+	// Generate JIT config (replaces registration token + config.sh)
+	jitConfig, err := generateJITConfig(ctx, owner, repo, instanceName, event.WorkflowJob.Labels)
 	if err != nil {
-		return fmt.Errorf("get registration token: %w", err)
+		return fmt.Errorf("generate JIT config: %w", err)
 	}
 
-	instanceName := fmt.Sprintf("gcrunner-%d-%d", event.WorkflowJob.RunID, event.WorkflowJob.ID)
-	repoURL := fmt.Sprintf("https://github.com/%s", repoFullName)
-	runnerLabels := strings.Join(event.WorkflowJob.Labels, ",")
-
 	cacheBucket := os.Getenv("GCRUNNER_CACHE_BUCKET")
-	startupScript := fmt.Sprintf(startupScriptTemplate, regToken, repoURL, instanceName, runnerLabels, cacheBucket)
+	startupScript := fmt.Sprintf(startupScriptTemplate, jitConfig, cacheBucket, owner, repo)
 
 	region := os.Getenv("GCE_REGION")
 	if region == "" {
