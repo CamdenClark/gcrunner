@@ -108,3 +108,28 @@ jobs:
 
           # Cleanup
           gcloud compute instances delete "${VM_NAME}" --zone="${ZONE}" --project="${{ vars.PACKER_PROJECT_ID }}" --quiet
+
+      - name: Make image public
+        run: |
+          LATEST_IMAGE=$(gcloud compute images list \
+            --project="${{ vars.PACKER_PROJECT_ID }}" \
+            --filter="family=gcrunner-${{ matrix.family }}" \
+            --sort-by="~creationTimestamp" \
+            --limit=1 \
+            --format="value(name)")
+          gcloud compute images add-iam-policy-binding "$LATEST_IMAGE" \
+            --project="${{ vars.PACKER_PROJECT_ID }}" \
+            --member=allAuthenticatedUsers \
+            --role=roles/compute.imageUser
+
+      - name: Delete old images
+        run: |
+          OLD_IMAGES=$(gcloud compute images list \
+            --project="${{ vars.PACKER_PROJECT_ID }}" \
+            --filter="family=gcrunner-${{ matrix.family }}" \
+            --sort-by="~creationTimestamp" \
+            --format="value(name)" | tail -n +2)
+          for img in $OLD_IMAGES; do
+            echo "Deleting old image: $img"
+            gcloud compute images delete "$img" --project="${{ vars.PACKER_PROJECT_ID }}" --quiet
+          done
