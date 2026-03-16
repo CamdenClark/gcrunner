@@ -6,6 +6,7 @@ on:
     paths:
       - "function/**"
       - "Dockerfile"
+      - ".github/workflows/publish.yml"
 
 permissions:
   contents: read
