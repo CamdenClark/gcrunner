@@ -110,7 +110,13 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSetup(w http.ResponseWriter, r *http.Request) {
-	functionURL := fmt.Sprintf("https://%s", r.Host)
+	// Cloud Functions v2 sets X-Forwarded-Host and the function URL includes the function name.
+	// Use the FUNCTION_TARGET env var or fall back to extracting from the request URL.
+	functionName := os.Getenv("K_SERVICE")
+	if functionName == "" {
+		functionName = "gcrunner-webhook"
+	}
+	functionURL := fmt.Sprintf("https://%s/%s", r.Host, functionName)
 
 	manifest := GitHubAppManifest{
 		Name: "gcrunner",
