@@ -1,4 +1,4 @@
-baseURL = 'https://gcrunner.website/'
+baseURL = 'https://gcrunner.com/'
 languageCode = 'en-us'
 title = 'gcrunner'
 theme = 'hugo-book'
