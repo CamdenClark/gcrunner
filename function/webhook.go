@@ -53,12 +53,172 @@ func getSecret(ctx context.Context, name string) (string, error) {
 	return strings.TrimSpace(string(result.Payload.Data)), nil
 }
 
+// writeSecret creates a secret if it doesn't exist and adds a new version with the given value.
+func writeSecret(ctx context.Context, name, value string) error {
+	client, err := getSecretManagerClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create secret manager client: %w", err)
+	}
+
+	secretName := fmt.Sprintf("projects/%s/secrets/%s", projectID, name)
+
+	// Create secret if it doesn't exist
+	_, err = client.CreateSecret(ctx, &secretmanagerpb.CreateSecretRequest{
+		Parent:   fmt.Sprintf("projects/%s", projectID),
+		SecretId: name,
+		Secret: &secretmanagerpb.Secret{
+			Replication: &secretmanagerpb.Replication{
+				Replication: &secretmanagerpb.Replication_Automatic_{
+					Automatic: &secretmanagerpb.Replication_Automatic{},
+				},
+			},
+		},
+	})
+	if err != nil && !strings.Contains(err.Error(), "AlreadyExists") {
+		return fmt.Errorf("failed to create secret %s: %w", name, err)
+	}
+
+	// Add new version
+	_, err = client.AddSecretVersion(ctx, &secretmanagerpb.AddSecretVersionRequest{
+		Parent: secretName,
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: []byte(value),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to add secret version for %s: %w", name, err)
+	}
+
+	return nil
+}
+
 func init() {
 	functions.HTTP("Webhook", HandleWebhook)
 }
 
-// HandleWebhook is the Cloud Function entry point for workflow_job webhooks.
+// HandleWebhook is the Cloud Function entry point that routes between
+// setup pages and webhook handling.
 func HandleWebhook(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case r.Method == http.MethodGet && r.URL.Path == "/setup":
+		handleSetup(w, r)
+	case r.Method == http.MethodGet && r.URL.Path == "/setup/callback":
+		handleSetupCallback(w, r)
+	default:
+		handleWebhook(w, r)
+	}
+}
+
+func handleSetup(w http.ResponseWriter, r *http.Request) {
+	functionURL := fmt.Sprintf("https://%s", r.Host)
+
+	manifest := GitHubAppManifest{
+		Name: "gcrunner",
+		URL:  "https://github.com/camdenclark/gcrunner",
+		HookAttributes: map[string]string{
+			"url": functionURL,
+		},
+		RedirectURL: functionURL + "/setup/callback",
+		Public:      false,
+		DefaultPermissions: map[string]string{
+			"actions":        "read",
+			"administration": "write",
+		},
+		DefaultEvents: []string{"workflow_job"},
+	}
+
+	manifestJSON, err := json.Marshal(manifest)
+	if err != nil {
+		http.Error(w, "failed to marshal manifest", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<body>
+  <h1>gcrunner — GitHub App Setup</h1>
+  <p>Click the button below to create a GitHub App for gcrunner.</p>
+  <form action="https://github.com/settings/apps/new" method="post">
+    <input type="hidden" name="manifest" value='%s'>
+    <button type="submit" style="font-size:1.2em;padding:10px 20px;cursor:pointer;">
+      Create GitHub App
+    </button>
+  </form>
+</body>
+</html>`, string(manifestJSON))
+}
+
+func handleSetupCallback(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		http.Error(w, "missing code parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Exchange the code for app credentials
+	resp, err := http.Post(
+		fmt.Sprintf("https://api.github.com/app-manifests/%s/conversions", code),
+		"application/json",
+		nil,
+	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("GitHub API error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to read response: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		http.Error(w, fmt.Sprintf("GitHub returned %d: %s", resp.StatusCode, string(body)), http.StatusInternalServerError)
+		return
+	}
+
+	var app GitHubAppResponse
+	if err := json.Unmarshal(body, &app); err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse response: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Write credentials to Secret Manager
+	secrets := map[string]string{
+		"gcrunner-app-id":          fmt.Sprintf("%d", app.ID),
+		"gcrunner-private-key":     app.PEM,
+		"gcrunner-webhook-secret":  app.WebhookSecret,
+	}
+	for name, value := range secrets {
+		if err := writeSecret(ctx, name, value); err != nil {
+			log.Printf("ERROR writing secret %s: %v", name, err)
+			http.Error(w, fmt.Sprintf("failed to write secret %s: %v", name, err), http.StatusInternalServerError)
+			return
+		}
+		log.Printf("Wrote secret %s", name)
+	}
+
+	installURL := fmt.Sprintf("%s/installations/new", app.HTMLURL)
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<body>
+  <h1>GitHub App created!</h1>
+  <p><strong>App:</strong> %s</p>
+  <p><strong>App ID:</strong> %d</p>
+  <p>Credentials have been saved to Secret Manager.</p>
+  <p><a href="%s" style="font-size:1.2em;">Install the app on your repositories →</a></p>
+</body>
+</html>`, app.Name, app.ID, installURL)
+
+	log.Printf("GitHub App created: %s (ID: %d)", app.Name, app.ID)
+}
+
+func handleWebhook(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if r.Method != http.MethodPost {
@@ -180,4 +340,27 @@ type Repository struct {
 
 type RepositoryOwner struct {
 	Login string `json:"login"`
+}
+
+// GitHubAppManifest is the manifest sent to GitHub to create a new App.
+type GitHubAppManifest struct {
+	Name               string            `json:"name"`
+	URL                string            `json:"url"`
+	HookAttributes     map[string]string `json:"hook_attributes"`
+	RedirectURL        string            `json:"redirect_url"`
+	Public             bool              `json:"public"`
+	DefaultPermissions map[string]string `json:"default_permissions"`
+	DefaultEvents      []string          `json:"default_events"`
+}
+
+// GitHubAppResponse is the response from the manifest conversion endpoint.
+type GitHubAppResponse struct {
+	ID            int    `json:"id"`
+	Slug          string `json:"slug"`
+	Name          string `json:"name"`
+	ClientID      string `json:"client_id"`
+	ClientSecret  string `json:"client_secret"`
+	WebhookSecret string `json:"webhook_secret"`
+	PEM           string `json:"pem"`
+	HTMLURL       string `json:"html_url"`
 }
