@@ -24,7 +24,7 @@ func parseLabels(labels []string) *RunnerLabels {
 			// Defaults from spec
 			Machine:  "n2d-standard-2",
 			Spot:     true,
-			Disk:     "50gb",
+			Disk:     "75gb",
 			DiskType: "pd-ssd",
 			Image:    "ubuntu24-full-x64",
 		}
