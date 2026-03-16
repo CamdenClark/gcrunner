@@ -88,17 +88,18 @@ In MVP, the user specifies an exact GCE machine type. No family prefix expansion
 
 | Label | Default | Description |
 |---|---|---|
-| `machine` | `e2-medium` | Full GCE machine type name (e.g. `n2-standard-4`, `c3-standard-8`, `e2-medium`). Passed directly to the Compute Engine API. |
+| `machine` | `n2d-standard-2` | Full GCE machine type name (e.g. `n2-standard-4`, `c3-standard-8`, `n2d-standard-2`). Passed directly to the Compute Engine API. |
 | `spot` | `true` | Use Spot VMs. `true` (default), `false` for on-demand. If spot capacity is unavailable, automatically falls back to on-demand. |
 | `disk` | `50gb` | Boot disk size (e.g. `50gb`, `100gb`, `200gb`). |
+| `disk-type` | `pd-ssd` | Boot disk type (e.g. `pd-ssd`, `pd-balanced`, `pd-standard`). |
 | `image` | `ubuntu24-full-x64` | Runner image. Maps to a GCE image family. |
 
-That's it. Four labels.
+That's it. Five labels.
 
 **Examples:**
 
 ```yaml
-# Simplest — e2-medium spot VM, 50gb disk (all defaults)
+# Simplest — n2d-standard-2 spot VM, pd-ssd, 50gb disk (all defaults)
 runs-on: gcrunner=${{ github.run_id }}
 
 # Specify machine type
@@ -106,6 +107,9 @@ runs-on: gcrunner=${{ github.run_id }}/machine=n2-standard-4
 
 # Bigger machine, more disk
 runs-on: gcrunner=${{ github.run_id }}/machine=c3-standard-8/disk=200gb
+
+# Budget-friendly with balanced disk
+runs-on: gcrunner=${{ github.run_id }}/machine=e2-medium/disk-type=pd-balanced
 
 # Production deploy — no spot, can't risk preemption
 runs-on: gcrunner=${{ github.run_id }}/machine=n2-standard-2/spot=false

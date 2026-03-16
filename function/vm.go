@@ -101,7 +101,7 @@ func createInstance(ctx context.Context, name, zone string, labels *RunnerLabels
 				InitializeParams: &computepb.AttachedDiskInitializeParams{
 					SourceImage: proto.String(sourceImage),
 					DiskSizeGb:  proto.Int64(diskSizeGB),
-					DiskType:    proto.String(fmt.Sprintf("zones/%s/diskTypes/pd-balanced", zone)),
+					DiskType:    proto.String(fmt.Sprintf("zones/%s/diskTypes/%s", zone, labels.DiskType)),
 				},
 			},
 		},

@@ -4,11 +4,12 @@ import "strings"
 
 // RunnerLabels holds the parsed gcrunner label configuration.
 type RunnerLabels struct {
-	RunID   string
-	Machine string
-	Spot    bool
-	Disk    string
-	Image   string
+	RunID    string
+	Machine  string
+	Spot     bool
+	Disk     string
+	DiskType string
+	Image    string
 }
 
 // parseLabels extracts gcrunner config from workflow_job labels.
@@ -21,10 +22,11 @@ func parseLabels(labels []string) *RunnerLabels {
 
 		result := &RunnerLabels{
 			// Defaults from spec
-			Machine: "e2-medium",
-			Spot:    true,
-			Disk:    "50gb",
-			Image:   "ubuntu24-full-x64",
+			Machine:  "n2d-standard-2",
+			Spot:     true,
+			Disk:     "50gb",
+			DiskType: "pd-ssd",
+			Image:    "ubuntu24-full-x64",
 		}
 
 		parts := strings.Split(label, "/")
@@ -42,6 +44,8 @@ func parseLabels(labels []string) *RunnerLabels {
 				result.Spot = kv[1] != "false"
 			case "disk":
 				result.Disk = kv[1]
+			case "disk-type":
+				result.DiskType = kv[1]
 			case "image":
 				result.Image = kv[1]
 			}
