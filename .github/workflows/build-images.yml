@@ -94,7 +94,6 @@ jobs:
             set -e
             test -f /home/runner/run.sh && echo 'PASS: run.sh'
             test -d /opt/hostedtoolcache && echo 'PASS: hostedtoolcache'
-            test -d /opt/actionarchivecache && echo 'PASS: actionarchivecache'
             docker --version && echo 'PASS: docker'
             gcloud --version | head -1 && echo 'PASS: gcloud'
             git --version && echo 'PASS: git'
@@ -104,11 +103,6 @@ jobs:
             go version && echo 'PASS: go'
             rustc --version && echo 'PASS: rust'
             java -version 2>&1 | head -1 && echo 'PASS: java'
-            dotnet --version && echo 'PASS: dotnet'
-            kubectl version --client 2>&1 | head -1 && echo 'PASS: kubectl'
-            helm version --short && echo 'PASS: helm'
-            terraform version | head -1 && echo 'PASS: terraform'
-            aws --version && echo 'PASS: aws'
             test -x /usr/local/bin/cache-server && echo 'PASS: cache-server'
           "
 

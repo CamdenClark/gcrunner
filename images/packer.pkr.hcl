@@ -105,31 +105,23 @@ build {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}", "DEBIAN_FRONTEND=noninteractive"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts = [
-      "scripts/build/install-actions-cache.sh",
       "scripts/build/install-apt-common.sh",
-      "scripts/build/install-aws-tools.sh",
       "scripts/build/install-clang.sh",
       "scripts/build/install-cmake.sh",
-      "scripts/build/install-container-tools.sh",
-      "scripts/build/install-dotnetcore-sdk.sh",
       "scripts/build/install-gcc-compilers.sh",
       "scripts/build/install-git.sh",
       "scripts/build/install-git-lfs.sh",
       "scripts/build/install-github-cli.sh",
       "scripts/build/install-golang.sh",
       "scripts/build/install-java-tools.sh",
-      "scripts/build/install-mysql.sh",
       "scripts/build/install-nvm.sh",
       "scripts/build/install-nodejs.sh",
-      "scripts/build/install-php.sh",
-      "scripts/build/install-postgresql.sh",
       "scripts/build/install-ruby.sh",
       "scripts/build/install-rust.sh",
-      "scripts/build/install-packer.sh",
-      "scripts/build/install-terraform.sh",
       "scripts/build/configure-dpkg.sh",
       "scripts/build/install-yq.sh",
       "scripts/build/install-python.sh",
+      "scripts/build/install-pipx-packages.sh",
       "scripts/build/install-zstd.sh",
       "scripts/build/install-ninja.sh",
     ]
@@ -142,24 +134,6 @@ build {
     environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
     execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     scripts          = ["scripts/build/install-docker.sh"]
-  }
-
-  ###########################################################################
-  # pipx packages (after toolset install, matches official)
-  ###########################################################################
-  provisioner "shell" {
-    environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
-    execute_command  = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["scripts/build/install-pipx-packages.sh"]
-  }
-
-  ###########################################################################
-  # Homebrew (runs as non-root, matches official)
-  ###########################################################################
-  provisioner "shell" {
-    environment_vars = ["HELPER_SCRIPTS=${var.helper_script_folder}", "DEBIAN_FRONTEND=noninteractive", "INSTALLER_SCRIPT_FOLDER=${var.installer_script_folder}"]
-    execute_command  = "/bin/sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["scripts/build/install-homebrew.sh"]
   }
 
   ###########################################################################

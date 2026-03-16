@@ -111,24 +111,12 @@
         "versions": ["11", "17", "21"],
         "maven": "3.9.14"
     },
-    "dotnet": {
-        "versions": [
-            "8.0",
-            "9.0"
-        ],
-        "tools": [
-            { "name": "nbgv", "test": "nbgv --version", "getversion": "nbgv --version" }
-        ]
-    },
     "clang": {
         "versions": ["17", "18"],
         "default_version": "18"
     },
     "gcc": {
         "versions": ["g++-13", "g++-14"]
-    },
-    "php": {
-        "versions": ["8.3"]
     },
     "node": {
         "default": "20"
@@ -148,7 +136,4 @@
     "rubygems": [
         { "name": "fastlane" }
     ],
-    "postgresql": {
-        "version": "16"
-    }
 }
