@@ -118,7 +118,6 @@ build {
       "scripts/build/install-github-cli.sh",
       "scripts/build/install-golang.sh",
       "scripts/build/install-java-tools.sh",
-      "scripts/build/install-kubernetes-tools.sh",
       "scripts/build/install-mysql.sh",
       "scripts/build/install-nvm.sh",
       "scripts/build/install-nodejs.sh",
