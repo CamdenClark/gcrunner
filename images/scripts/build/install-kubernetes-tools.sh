@@ -1,0 +1,46 @@
+#!/bin/bash -e
+################################################################################
+##  File:  install-kubernetes-tools.sh
+##  Desc:  Install kubectl, helm, kustomize, kind, minikube
+##  From:  actions/runner-images (MIT License)
+################################################################################
+
+source $HELPER_SCRIPTS/install.sh
+
+# Install KIND
+kind_url=$(resolve_github_release_asset_url "kubernetes-sigs/kind" "endswith(\"kind-linux-amd64\")" "latest")
+kind_binary_path=$(download_with_retry "${kind_url}")
+
+kind_external_hash=$(get_checksum_from_url "${kind_url}.sha256sum" "kind-linux-amd64" "SHA256")
+use_checksum_comparison "${kind_binary_path}" "${kind_external_hash}"
+
+install "${kind_binary_path}" /usr/local/bin/kind
+
+## Install kubectl
+[ -d /etc/apt/keyrings ] || mkdir -p -m 755 /etc/apt/keyrings
+
+kubectl_minor_version=$(curl -fsSL --retry 5 --retry-delay 10 "https://dl.k8s.io/release/stable.txt" | cut -d'.' -f1,2)
+
+key_url="https://pkgs.k8s.io/core:/stable:/$kubectl_minor_version/deb/Release.key"
+curl -fsSL --retry 5 --retry-delay 10 -A "Mozilla/5.0" "$key_url" | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${kubectl_minor_version}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update
+apt-get install kubectl
+rm -f /etc/apt/sources.list.d/kubernetes.list
+
+# Install Helm
+curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+# Install minikube
+minikube_binary_path=$(download_with_retry "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64")
+
+minikube_hash=$(get_checksum_from_github_release "kubernetes/minikube" "linux-amd64" "latest" "SHA256")
+use_checksum_comparison "${minikube_binary_path}" "${minikube_hash}"
+
+install "${minikube_binary_path}" /usr/local/bin/minikube
+
+# Install kustomize
+download_url="https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+curl -fsSL "$download_url" | bash
+mv kustomize /usr/local/bin

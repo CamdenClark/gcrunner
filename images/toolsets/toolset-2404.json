@@ -1,0 +1,154 @@
+{
+    "apt": {
+        "vital_packages": [
+            "bzip2",
+            "curl",
+            "g++",
+            "gcc",
+            "make",
+            "jq",
+            "tar",
+            "unzip",
+            "wget"
+        ],
+        "common_packages": [
+            "autoconf",
+            "automake",
+            "dbus",
+            "dnsutils",
+            "dpkg",
+            "dpkg-dev",
+            "fakeroot",
+            "fonts-noto-color-emoji",
+            "gnupg2",
+            "iproute2",
+            "iputils-ping",
+            "libyaml-dev",
+            "libtool",
+            "libssl-dev",
+            "libsqlite3-dev",
+            "locales",
+            "mercurial",
+            "openssh-client",
+            "p7zip-rar",
+            "pkg-config",
+            "python-is-python3",
+            "rpm",
+            "texinfo",
+            "tk",
+            "tree",
+            "tzdata",
+            "upx",
+            "xvfb",
+            "xz-utils",
+            "zsync"
+        ],
+        "cmd_packages": [
+            "acl",
+            "aria2",
+            "binutils",
+            "bison",
+            "brotli",
+            "libnss3-tools",
+            "coreutils",
+            "file",
+            "findutils",
+            "flex",
+            "ftp",
+            "haveged",
+            "lz4",
+            "m4",
+            "mediainfo",
+            "netcat-openbsd",
+            "net-tools",
+            "p7zip-full",
+            "parallel",
+            "patchelf",
+            "pigz",
+            "pollinate",
+            "rsync",
+            "shellcheck",
+            "sqlite3",
+            "ssh",
+            "sshpass",
+            "sudo",
+            "swig",
+            "telnet",
+            "time",
+            "zip"
+        ]
+    },
+    "docker": {
+        "components": [
+            {
+                "package": "containerd.io",
+                "version": "latest"
+            },
+            {
+                "package": "docker-ce-cli",
+                "version": "latest"
+            },
+            {
+                "package": "docker-ce",
+                "version": "latest"
+            }
+        ],
+        "plugins": [
+            {
+                "plugin": "buildx",
+                "version": "latest",
+                "asset": "linux-amd64"
+            },
+            {
+                "plugin": "compose",
+                "version": "latest",
+                "asset": "linux-x86_64"
+            }
+        ]
+    },
+    "java": {
+        "default": "17",
+        "versions": ["11", "17", "21"],
+        "maven": "3.9.14"
+    },
+    "dotnet": {
+        "versions": [
+            "8.0",
+            "9.0"
+        ],
+        "tools": [
+            { "name": "nbgv", "test": "nbgv --version", "getversion": "nbgv --version" }
+        ]
+    },
+    "clang": {
+        "versions": ["17", "18"],
+        "default_version": "18"
+    },
+    "gcc": {
+        "versions": ["g++-13", "g++-14"]
+    },
+    "php": {
+        "versions": ["8.3"]
+    },
+    "node": {
+        "default": "20"
+    },
+    "node_modules": [
+        { "name": "typescript", "command": "tsc" },
+        { "name": "yarn", "command": "yarn" },
+        { "name": "webpack", "command": "webpack" },
+        { "name": "webpack-cli", "command": "webpack-cli" },
+        { "name": "lerna", "command": "lerna" },
+        { "name": "n", "command": "n" }
+    ],
+    "pipx": [
+        { "package": "yamllint", "cmd": "yamllint" },
+        { "package": "ansible-core", "cmd": "ansible" }
+    ],
+    "rubygems": [
+        { "name": "fastlane" }
+    ],
+    "postgresql": {
+        "version": "16"
+    }
+}
