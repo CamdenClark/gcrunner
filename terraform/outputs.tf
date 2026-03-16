@@ -1,9 +1,9 @@
 output "webhook_url" {
-  value = google_cloudfunctions2_function.webhook.url
+  value = google_cloud_run_v2_service.webhook.uri
 }
 
 output "setup_url" {
-  value = "${google_cloudfunctions2_function.webhook.url}/setup"
+  value = "${google_cloud_run_v2_service.webhook.uri}/setup"
 }
 
 output "function_service_account" {

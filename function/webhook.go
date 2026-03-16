@@ -16,7 +16,6 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 )
 
 var (
@@ -92,11 +91,7 @@ func writeSecret(ctx context.Context, name, value string) error {
 	return nil
 }
 
-func init() {
-	functions.HTTP("Webhook", HandleWebhook)
-}
-
-// HandleWebhook is the Cloud Function entry point that routes between
+// HandleWebhook is the HTTP entry point that routes between
 // setup pages and webhook handling.
 func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	switch {
@@ -110,13 +105,7 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSetup(w http.ResponseWriter, r *http.Request) {
-	// Cloud Functions v2 sets X-Forwarded-Host and the function URL includes the function name.
-	// Use the FUNCTION_TARGET env var or fall back to extracting from the request URL.
-	functionName := os.Getenv("K_SERVICE")
-	if functionName == "" {
-		functionName = "gcrunner-webhook"
-	}
-	functionURL := fmt.Sprintf("https://%s/%s", r.Host, functionName)
+	functionURL := fmt.Sprintf("https://%s", r.Host)
 
 	manifest := GitHubAppManifest{
 		Name: "gcrunner",

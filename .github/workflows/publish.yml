@@ -1,0 +1,33 @@
+name: Publish container image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "function/**"
+      - "Dockerfile"
+
+permissions:
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/camdenclark/gcrunner:latest
+            ghcr.io/camdenclark/gcrunner:${{ github.sha }}
