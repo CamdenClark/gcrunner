@@ -6,6 +6,16 @@
 ################################################################################
 
 source $HELPER_SCRIPTS/install.sh
+source $HELPER_SCRIPTS/os.sh
+
+# Add LLVM apt repository for versions not in default Ubuntu repos
+wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm.gpg
+os_codename=$(lsb_release -cs)
+for version in $(get_toolset_value '.clang.versions[]'); do
+    echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] http://apt.llvm.org/${os_codename}/ llvm-toolchain-${os_codename}-${version} main" \
+        >> /etc/apt/sources.list.d/llvm.list
+done
+apt-get update
 
 install_clang() {
     local version=$1
@@ -36,3 +46,7 @@ done
 
 install_clang $default_clang_version
 set_default_clang $default_clang_version
+
+# Cleanup
+rm -f /etc/apt/sources.list.d/llvm.list
+rm -f /usr/share/keyrings/llvm.gpg
