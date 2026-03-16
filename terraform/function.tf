@@ -24,10 +24,6 @@ resource "google_cloud_run_v2_service" "webhook" {
   template {
     service_account = google_service_account.function.email
 
-    scaling {
-      max_instance_count = var.max_instances
-    }
-
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_remote.repository_id}/camdenclark/gcrunner:latest"
 

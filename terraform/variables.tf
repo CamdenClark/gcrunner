@@ -28,13 +28,7 @@ variable "image_project" {
 }
 
 variable "function_name" {
-  description = "Cloud Function name"
+  description = "Cloud Run service name"
   type        = string
   default     = "gcrunner-webhook"
-}
-
-variable "max_instances" {
-  description = "Max concurrent function instances"
-  type        = number
-  default     = 10
 }
