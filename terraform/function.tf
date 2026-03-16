@@ -1,7 +1,20 @@
-variable "image" {
-  description = "Container image for the webhook service"
-  type        = string
-  default     = "ghcr.io/camdenclark/gcrunner:latest"
+resource "google_artifact_registry_repository" "ghcr_remote" {
+  repository_id = "gcrunner-ghcr"
+  location      = var.region
+  format        = "DOCKER"
+  mode          = "REMOTE_REPOSITORY"
+
+  remote_repository_config {
+    docker_repository {
+      custom_repository {
+        uri = "https://ghcr.io"
+      }
+    }
+  }
+
+  depends_on = [
+    google_project_service.apis["artifactregistry.googleapis.com"],
+  ]
 }
 
 resource "google_cloud_run_v2_service" "webhook" {
@@ -16,11 +29,11 @@ resource "google_cloud_run_v2_service" "webhook" {
     }
 
     containers {
-      image = var.image
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_remote.repository_id}/camdenclark/gcrunner:latest"
 
       resources {
         limits = {
-          memory = "256Mi"
+          memory = "512Mi"
           cpu    = "1"
         }
       }
@@ -46,6 +59,7 @@ resource "google_cloud_run_v2_service" "webhook" {
 
   depends_on = [
     google_project_service.apis["run.googleapis.com"],
+    google_artifact_registry_repository.ghcr_remote,
   ]
 }
 

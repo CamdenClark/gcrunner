@@ -15,6 +15,7 @@ provider "google" {
 locals {
   apis = toset([
     "run.googleapis.com",
+    "artifactregistry.googleapis.com",
     "secretmanager.googleapis.com",
     "compute.googleapis.com",
   ])
