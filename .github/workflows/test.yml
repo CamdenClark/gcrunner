@@ -12,3 +12,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Hello
         run: echo "Hello from gcrunner!"
+
+  test-ubuntu22:
+    runs-on: gcrunner=${{ github.run_id }}-u22/image=ubuntu22-full-x64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hello
+        run: echo "Hello from gcrunner on Ubuntu 22.04!"
+      - name: Check OS
+        run: lsb_release -a
