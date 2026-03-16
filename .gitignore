@@ -3,4 +3,4 @@ private-key.pem
 *.pem
 
 # build artifacts
-function/setup
+orchestrator/setup

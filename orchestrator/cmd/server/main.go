@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	function "github.com/camdenclark/gcrunner/function"
+	orchestrator "github.com/camdenclark/gcrunner/orchestrator"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 		port = "8080"
 	}
 
-	http.HandleFunc("/", function.HandleWebhook)
+	http.HandleFunc("/", orchestrator.HandleWebhook)
 
 	log.Printf("gcrunner listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

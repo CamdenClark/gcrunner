@@ -4,8 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "function/**"
-      - "Dockerfile"
+      - "orchestrator/**"
       - ".github/workflows/publish.yml"
 
 permissions:
@@ -28,7 +27,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./orchestrator
           push: true
           tags: |
             ghcr.io/camdenclark/gcrunner:latest

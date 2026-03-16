@@ -1,4 +1,4 @@
-module github.com/camdenclark/gcrunner/function
+module github.com/camdenclark/gcrunner/orchestrator
 
 go 1.26
 

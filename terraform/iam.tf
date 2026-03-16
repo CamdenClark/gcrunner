@@ -3,7 +3,7 @@ resource "google_service_account" "function" {
   display_name = "gcrunner Cloud Function"
 }
 
-# Hardcoded name — must match function/vm.go:131
+# Hardcoded name — must match orchestrator/vm.go
 resource "google_service_account" "runner" {
   account_id   = "gcrunner-runner"
   display_name = "gcrunner VM Runner"
