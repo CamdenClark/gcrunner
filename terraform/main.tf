@@ -23,6 +23,7 @@ locals {
     "secretmanager.googleapis.com",
     "compute.googleapis.com",
     "cloudtasks.googleapis.com",
+    "iam.googleapis.com",
   ])
 }
 
