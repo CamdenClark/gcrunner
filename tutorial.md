@@ -61,7 +61,9 @@ Review and deploy:
 terraform plan && terraform apply
 ```
 
-Type `yes` when prompted. Terraform will create:
+Type `yes` when prompted. If you see an error that an API has not been enabled or is disabled, wait a minute and re-run — API enablement can take a moment to propagate.
+
+Terraform will create:
 
 | Resource | Purpose |
 |---|---|
