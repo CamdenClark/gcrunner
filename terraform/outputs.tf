@@ -3,7 +3,8 @@ output "webhook_url" {
 }
 
 output "setup_url" {
-  value = "${google_cloud_run_v2_service.webhook.uri}/setup"
+  value     = "${google_cloud_run_v2_service.webhook.uri}/setup?token=${random_password.setup_token.result}"
+  sensitive = true
 }
 
 output "function_service_account" {
