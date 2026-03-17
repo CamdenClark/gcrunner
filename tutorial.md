@@ -2,32 +2,13 @@
 
 <walkthrough-tutorial-duration duration="15"></walkthrough-tutorial-duration>
 
-## Overview
-
-gcrunner is an open-source, drop-in replacement for GitHub-hosted Actions runners on Google Cloud. It provisions ephemeral Compute Engine VMs on demand, runs the job, and self-destructs — giving you full `actions/runner-images` compatibility at **80%+ cost savings**.
-
-**What you'll do:**
-
-- Select a GCP project and enable required APIs
-- Deploy infrastructure with Terraform
-- Set up a GitHub App to connect your repositories
-- Configure your first workflow to use gcrunner
-
-**What you'll need:**
-
-- A GCP project with billing enabled
-- A GitHub account with admin access to the repositories you want to use
-- Terraform installed (this tutorial will install it if needed)
-
 Click **Start** to begin.
 
 ## Project setup
 
 <walkthrough-project-setup billing="true"></walkthrough-project-setup>
 
-First, select a Google Cloud project to deploy gcrunner into. If you don't have one, create a new project using the widget above.
-
-Set the project ID for use throughout this tutorial:
+Select a Google Cloud project above, then set the project ID:
 
 ```sh
 export PROJECT_ID=<walkthrough-project-id/>
@@ -36,36 +17,18 @@ gcloud config set project $PROJECT_ID
 
 ### Enable required APIs
 
-<walkthrough-enable-apis apis="run.googleapis.com,compute.googleapis.com,secretmanager.googleapis.com,artifactregistry.googleapis.com"></walkthrough-enable-apis>
-
-gcrunner needs Cloud Run, Compute Engine, Secret Manager, and Artifact Registry. Click the button above or run:
+<walkthrough-enable-apis apis="run.googleapis.com,compute.googleapis.com,secretmanager.googleapis.com,artifactregistry.googleapis.com,cloudresourcemanager.googleapis.com"></walkthrough-enable-apis>
 
 ```sh
 gcloud services enable \
   run.googleapis.com \
   compute.googleapis.com \
   secretmanager.googleapis.com \
-  artifactregistry.googleapis.com
-```
-
-## Clone the repository
-
-Clone the gcrunner repository and navigate to it:
-
-```sh
-git clone https://github.com/camdenclark/gcrunner.git
-cd gcrunner
+  artifactregistry.googleapis.com \
+  cloudresourcemanager.googleapis.com
 ```
 
 ## Install Terraform
-
-Check if Terraform is already installed:
-
-```sh
-terraform version || true
-```
-
-If Terraform is not installed, install it now:
 
 ```sh
 sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
@@ -79,7 +42,7 @@ sudo apt-get update && sudo apt-get install -y terraform
 Navigate to the Terraform directory and initialize:
 
 ```sh
-cd terraform
+cd ~/cloudshell_open/gcrunner/terraform
 terraform init
 ```
 
@@ -100,21 +63,13 @@ export TF_VAR_enable_cache=true
 
 ### Apply the configuration
 
-Review the planned changes and deploy:
+Review and deploy:
 
 ```sh
-terraform plan
+terraform plan && terraform apply
 ```
 
-If everything looks good, apply:
-
-```sh
-terraform apply
-```
-
-Type `yes` when prompted to confirm.
-
-Terraform will create:
+Type `yes` when prompted. Terraform will create:
 
 | Resource | Purpose |
 |---|---|
@@ -127,14 +82,6 @@ Terraform will create:
 
 ### Save the outputs
 
-Once Terraform completes, note the important outputs:
-
-```sh
-terraform output
-```
-
-The `setup_url` is what you'll use in the next step to create the GitHub App.
-
 ```sh
 export SETUP_URL=$(terraform output -raw setup_url)
 echo "Setup URL: $SETUP_URL"
@@ -142,37 +89,22 @@ echo "Setup URL: $SETUP_URL"
 
 ## Set up the GitHub App
 
-gcrunner uses a GitHub App to receive webhook events and register runners. The setup flow is built into gcrunner itself.
-
-### Open the setup page
-
 Open the setup URL in your browser:
 
 ```sh
 echo $SETUP_URL
 ```
 
-Click the URL in the terminal output, or copy it into your browser.
+1. Click **Create GitHub App**
+2. Name the app and select where to install it
+3. Select which repositories should have access to gcrunner
+4. Complete the installation
 
-### Create and install the GitHub App
-
-1. On the setup page, click **Create GitHub App**
-2. GitHub will prompt you to name the app and select where to install it
-3. Choose the organization or account where your repositories live
-4. Select which repositories should have access to gcrunner
-5. Complete the installation
-
-The setup flow will automatically store the GitHub App credentials (app ID, private key, and webhook secret) in Secret Manager.
+The credentials (app ID, private key, webhook secret) are automatically stored in Secret Manager.
 
 ## Configure your first workflow
 
-Navigate back to the repository root:
-
-```sh
-cd ~/gcrunner
-```
-
-In any repository where you installed the GitHub App, update your workflow to use gcrunner. Here's an example:
+In any repository where you installed the GitHub App, update your workflow to use gcrunner:
 
 ```yaml
 name: CI
@@ -194,9 +126,6 @@ jobs:
 All runner configuration lives in the `runs-on` field using simple labels:
 
 ```yaml
-# Default: n2d-standard-2 spot VM, pd-ssd, 75gb disk
-runs-on: gcrunner=${{ github.run_id }}
-
 # Specify machine type
 runs-on: gcrunner=${{ github.run_id }}/machine=n2-standard-4
 
@@ -219,13 +148,13 @@ Available labels:
 
 ## Verify the deployment
 
-To verify that everything is working, trigger a workflow in one of your configured repositories. You can check the Cloud Run logs to see webhook events being processed:
+Trigger a workflow in one of your configured repositories, then check the logs:
 
 ```sh
 gcloud run services logs read gcrunner-webhook --region=$TF_VAR_region --limit=20
 ```
 
-You can also list any runner VMs that are currently active:
+List active runner VMs:
 
 ```sh
 gcloud compute instances list --filter="name~gcrunner"
@@ -235,20 +164,4 @@ gcloud compute instances list --filter="name~gcrunner"
 
 <walkthrough-conclusion-trophy></walkthrough-conclusion-trophy>
 
-You've successfully deployed gcrunner on Google Cloud!
-
-**What you've set up:**
-
-- Cloud Run service receiving GitHub webhook events
-- Ephemeral Compute Engine VMs as GitHub Actions runners
-- Secure credential storage in Secret Manager
-- Optional GCS build caching
-
-**Next steps:**
-
-- Add gcrunner labels to more of your workflows
-- Explore different [machine types](https://cloud.google.com/compute/docs/machine-types) for your workloads
-- Enable the GCS cache with `extras=gcs-cache` for faster builds
-- Check [gcrunner.com](https://gcrunner.com) for full documentation
-
-**Cost savings tip:** Spot VMs (enabled by default) save 60-91% compared to on-demand pricing. For production deploys where you can't risk preemption, use `spot=false`.
+You've deployed gcrunner. Check [gcrunner.com](https://gcrunner.com) for full documentation.
