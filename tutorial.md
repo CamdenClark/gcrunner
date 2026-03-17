@@ -61,7 +61,9 @@ Review and deploy:
 terraform plan && terraform apply
 ```
 
-Type `yes` when prompted. If you see an error that an API has not been enabled or is disabled, wait a minute and re-run — API enablement can take a moment to propagate.
+Type `yes` when prompted.
+
+> **Note:** If you see an error like `Error 403: Identity and Access Management (IAM) API has not been used in project ... before or it is disabled`, just re-run `terraform apply` — this commonly happens with the IAM and Cloud Tasks APIs on new projects and resolves itself once enablement propagates.
 
 Terraform will create:
 
