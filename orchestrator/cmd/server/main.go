@@ -14,6 +14,7 @@ func main() {
 		port = "8080"
 	}
 
+	http.HandleFunc("/task/", orchestrator.HandleTask)
 	http.HandleFunc("/", orchestrator.HandleWebhook)
 
 	log.Printf("gcrunner listening on :%s", port)

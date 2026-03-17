@@ -50,6 +50,18 @@ resource "google_cloud_run_v2_service" "webhook" {
         name  = "GCRUNNER_IMAGE_PROJECT"
         value = var.image_project
       }
+      env {
+        name  = "CLOUD_TASKS_QUEUE"
+        value = google_cloud_tasks_queue.webhook.id
+      }
+      env {
+        name  = "CLOUD_RUN_URL"
+        value = "https://${var.function_name}-${data.google_project.project.number}.${var.region}.run.app"
+      }
+      env {
+        name  = "CLOUD_TASKS_SA_EMAIL"
+        value = google_service_account.tasks.email
+      }
     }
   }
 
