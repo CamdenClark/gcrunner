@@ -27,3 +27,23 @@ resource "google_secret_manager_secret" "webhook_secret" {
 
   depends_on = [google_project_service.apis["secretmanager.googleapis.com"]]
 }
+
+resource "random_password" "setup_token" {
+  length  = 32
+  special = false
+}
+
+resource "google_secret_manager_secret" "setup_token" {
+  secret_id = "gcrunner-setup-token"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.apis["secretmanager.googleapis.com"]]
+}
+
+resource "google_secret_manager_secret_version" "setup_token" {
+  secret      = google_secret_manager_secret.setup_token.id
+  secret_data = random_password.setup_token.result
+}
