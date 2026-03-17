@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	cloudtasks "cloud.google.com/go/cloudtasks/apiv2"
@@ -47,7 +48,10 @@ func enqueueTask(ctx context.Context, path string, payload []byte, jobID int64) 
 		return fmt.Errorf("CLOUD_TASKS_SA_EMAIL environment variable not set")
 	}
 
-	taskName := fmt.Sprintf("%s/tasks/job-%d-%s", queuePath, jobID, path[1:]) // strip leading /
+	// Task IDs may only contain letters, numbers, hyphens, underscores.
+	// Convert path like "/task/queued" → "queued" for the suffix.
+	pathSuffix := path[strings.LastIndex(path, "/")+1:]
+	taskName := fmt.Sprintf("%s/tasks/job-%d-%s", queuePath, jobID, pathSuffix)
 
 	req := &taskspb.CreateTaskRequest{
 		Parent: queuePath,
