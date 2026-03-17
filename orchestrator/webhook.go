@@ -3,6 +3,7 @@ package function
 import (
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -11,8 +12,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -104,7 +107,69 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// generateState creates an HMAC-signed state token containing a timestamp.
+// The state is verified on callback to prevent CSRF without needing server-side storage.
+func generateState(setupToken string) (string, error) {
+	nonce := make([]byte, 16)
+	if _, err := rand.Read(nonce); err != nil {
+		return "", fmt.Errorf("generate nonce: %w", err)
+	}
+	nonceHex := hex.EncodeToString(nonce)
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	payload := nonceHex + "." + ts
+	mac := hmac.New(sha256.New, []byte(setupToken))
+	mac.Write([]byte(payload))
+	sig := hex.EncodeToString(mac.Sum(nil))
+	return payload + "." + sig, nil
+}
+
+// verifyState checks that a state token is valid and not expired (1 hour TTL).
+func verifyState(state, setupToken string) bool {
+	parts := strings.SplitN(state, ".", 3)
+	if len(parts) != 3 {
+		return false
+	}
+	payload := parts[0] + "." + parts[1]
+	sig, err := hex.DecodeString(parts[2])
+	if err != nil {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(setupToken))
+	mac.Write([]byte(payload))
+	if !hmac.Equal(sig, mac.Sum(nil)) {
+		return false
+	}
+	ts, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return false
+	}
+	return time.Since(time.Unix(ts, 0)) < 1*time.Hour
+}
+
 func handleSetup(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Validate setup token
+	setupToken, err := getSecret(ctx, "gcrunner-setup-token")
+	if err != nil || setupToken == "" {
+		log.Printf("ERROR: could not load setup token: %v", err)
+		http.Error(w, "setup not available", http.StatusInternalServerError)
+		return
+	}
+	providedToken := r.URL.Query().Get("token")
+	if !hmac.Equal([]byte(providedToken), []byte(setupToken)) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Generate CSRF state parameter
+	state, err := generateState(setupToken)
+	if err != nil {
+		log.Printf("ERROR: could not generate state: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	functionURL := fmt.Sprintf("https://%s", r.Host)
 
 	manifest := GitHubAppManifest{
@@ -136,12 +201,13 @@ func handleSetup(w http.ResponseWriter, r *http.Request) {
   <p>Click the button below to create a GitHub App for gcrunner.</p>
   <form action="https://github.com/settings/apps/new" method="post">
     <input type="hidden" name="manifest" value='%s'>
+    <input type="hidden" name="state" value="%s">
     <button type="submit" style="font-size:1.2em;padding:10px 20px;cursor:pointer;">
       Create GitHub App
     </button>
   </form>
 </body>
-</html>`, string(manifestJSON))
+</html>`, string(manifestJSON), state)
 }
 
 func handleSetupCallback(w http.ResponseWriter, r *http.Request) {
@@ -153,6 +219,20 @@ func handleSetupCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify CSRF state parameter
+	state := r.URL.Query().Get("state")
+	setupToken, err := getSecret(ctx, "gcrunner-setup-token")
+	if err != nil || setupToken == "" {
+		log.Printf("ERROR: could not load setup token for state verification: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if state == "" || !verifyState(state, setupToken) {
+		log.Printf("Setup callback: invalid or expired state parameter")
+		http.Error(w, "invalid or expired state", http.StatusForbidden)
+		return
+	}
+
 	// Exchange the code for app credentials
 	resp, err := http.Post(
 		fmt.Sprintf("https://api.github.com/app-manifests/%s/conversions", code),
@@ -160,25 +240,29 @@ func handleSetupCallback(w http.ResponseWriter, r *http.Request) {
 		nil,
 	)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("GitHub API error: %v", err), http.StatusInternalServerError)
+		log.Printf("ERROR: GitHub API error: %v", err)
+		http.Error(w, "failed to contact GitHub API", http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to read response: %v", err), http.StatusInternalServerError)
+		log.Printf("ERROR: failed to read GitHub response: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		http.Error(w, fmt.Sprintf("GitHub returned %d: %s", resp.StatusCode, string(body)), http.StatusInternalServerError)
+		log.Printf("ERROR: GitHub returned %d: %s", resp.StatusCode, string(body))
+		http.Error(w, "GitHub did not accept the app manifest", http.StatusInternalServerError)
 		return
 	}
 
 	var app GitHubAppResponse
 	if err := json.Unmarshal(body, &app); err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse response: %v", err), http.StatusInternalServerError)
+		log.Printf("ERROR: failed to parse GitHub response: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -191,7 +275,7 @@ func handleSetupCallback(w http.ResponseWriter, r *http.Request) {
 	for name, value := range secrets {
 		if err := writeSecret(ctx, name, value); err != nil {
 			log.Printf("ERROR writing secret %s: %v", name, err)
-			http.Error(w, fmt.Sprintf("failed to write secret %s: %v", name, err), http.StatusInternalServerError)
+			http.Error(w, "failed to save credentials", http.StatusInternalServerError)
 			return
 		}
 		log.Printf("Wrote secret %s", name)
@@ -232,17 +316,22 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 	// Verify HMAC signature using secret from Secret Manager
 	secret, err := getSecret(ctx, "gcrunner-webhook-secret")
 	if err != nil {
-		log.Printf("WARNING: could not load webhook secret: %v", err)
+		log.Printf("ERROR: could not load webhook secret: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
 	}
-	if secret != "" {
-		sig := r.Header.Get("X-Hub-Signature-256")
-		if !verifySignature(body, sig, secret) {
-			log.Printf("Signature verification failed")
-			http.Error(w, "invalid signature", http.StatusUnauthorized)
-			return
-		}
-		log.Printf("Signature verified")
+	if secret == "" {
+		log.Printf("ERROR: webhook secret is empty")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
 	}
+	sig := r.Header.Get("X-Hub-Signature-256")
+	if !verifySignature(body, sig, secret) {
+		log.Printf("Signature verification failed")
+		http.Error(w, "invalid signature", http.StatusUnauthorized)
+		return
+	}
+	log.Printf("Signature verified")
 
 	event := r.Header.Get("X-GitHub-Event")
 	if event != "workflow_job" {
