@@ -12,12 +12,17 @@ provider "google" {
   region  = var.region
 }
 
+data "google_project" "project" {
+  project_id = var.project_id
+}
+
 locals {
   apis = toset([
     "run.googleapis.com",
     "artifactregistry.googleapis.com",
     "secretmanager.googleapis.com",
     "compute.googleapis.com",
+    "cloudtasks.googleapis.com",
   ])
 }
 

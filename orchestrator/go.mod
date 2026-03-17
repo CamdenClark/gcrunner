@@ -3,6 +3,7 @@ module github.com/camdenclark/gcrunner/orchestrator
 go 1.26
 
 require (
+	cloud.google.com/go/cloudtasks v1.13.7
 	cloud.google.com/go/compute v1.57.0
 	cloud.google.com/go/secretmanager v1.16.0
 	github.com/golang-jwt/jwt/v5 v5.3.1

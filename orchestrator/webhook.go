@@ -346,21 +346,82 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var taskPath string
 	switch payload.Action {
 	case "queued":
-		if err := handleQueued(ctx, payload); err != nil {
-			log.Printf("ERROR handling queued: %v", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
+		taskPath = "/task/queued"
 	case "completed":
-		if err := handleCompleted(ctx, payload); err != nil {
-			log.Printf("ERROR handling completed: %v", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
+		taskPath = "/task/completed"
 	case "in_progress":
 		// no-op for MVP
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "ok")
+		return
+	default:
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "ok")
+		return
+	}
+
+	if err := enqueueTask(ctx, taskPath, body, payload.WorkflowJob.ID); err != nil {
+		log.Printf("ERROR enqueuing task for job %d: %v", payload.WorkflowJob.ID, err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Enqueued %s task for job %d", payload.Action, payload.WorkflowJob.ID)
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "ok")
+}
+
+// HandleTask handles requests from Cloud Tasks at /task/* paths.
+// Cloud Run IAM ensures only the tasks SA can invoke this endpoint.
+// The X-CloudTasks-TaskName header is set automatically by Cloud Tasks.
+func HandleTask(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Verify the request comes from Cloud Tasks
+	if r.Header.Get("X-CloudTasks-TaskName") == "" {
+		http.Error(w, "not a Cloud Tasks request", http.StatusForbidden)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "failed to read body", http.StatusBadRequest)
+		return
+	}
+
+	var payload WorkflowJobEvent
+	if err := json.Unmarshal(body, &payload); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	retryCount := r.Header.Get("X-CloudTasks-TaskRetryCount")
+	log.Printf("Task %s: action=%s job=%d retry=%s", r.URL.Path, payload.Action, payload.WorkflowJob.ID, retryCount)
+
+	switch r.URL.Path {
+	case "/task/queued":
+		if err := handleQueued(ctx, payload); err != nil {
+			log.Printf("ERROR handling queued task: %v", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+	case "/task/completed":
+		if err := handleCompleted(ctx, payload); err != nil {
+			log.Printf("ERROR handling completed task: %v", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "unknown task path", http.StatusNotFound)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)

@@ -37,6 +37,28 @@ resource "google_service_account_iam_member" "function_uses_runner" {
   member             = "serviceAccount:${google_service_account.function.email}"
 }
 
+# Dedicated SA for Cloud Tasks to invoke Cloud Run
+resource "google_service_account" "tasks" {
+  account_id   = "gcrunner-tasks"
+  display_name = "gcrunner Cloud Tasks Invoker"
+}
+
+# Tasks SA: invoke Cloud Run
+resource "google_cloud_run_v2_service_iam_member" "tasks_invoker" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.webhook.name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.tasks.email}"
+}
+
+# Function SA: enqueue tasks
+resource "google_project_iam_member" "function_tasks_enqueuer" {
+  project = var.project_id
+  role    = "roles/cloudtasks.enqueuer"
+  member  = "serviceAccount:${google_service_account.function.email}"
+}
+
 # Runner SA: self-delete VMs
 resource "google_project_iam_member" "runner_compute" {
   project = var.project_id
