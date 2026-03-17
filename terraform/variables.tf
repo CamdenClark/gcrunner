@@ -12,7 +12,7 @@ variable "region" {
 variable "enable_cache" {
   description = "Create GCS cache bucket"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "cache_bucket_name" {

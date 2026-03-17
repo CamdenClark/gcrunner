@@ -2,13 +2,20 @@
 
 <walkthrough-tutorial-duration duration="15"></walkthrough-tutorial-duration>
 
-Click **Start** to begin.
+By the end of this tutorial, you'll have GitHub Actions self-hosted runners running on ephemeral Google Cloud VMs. Every job gets its own fresh VM that boots in ~25 seconds, runs your workflow, and self-destructs — giving you full `ubuntu-latest` compatibility at a fraction of the cost of GitHub-hosted runners.
 
-## Project setup
+## Prerequisites
+
+- A **brand new GCP project** with billing enabled — if you just created it, reload this tutorial to see it in the project picker below
+- A GitHub account with a repository to test against
 
 <walkthrough-project-setup billing="true"></walkthrough-project-setup>
 
-Select a Google Cloud project above, then set the project ID:
+Click **Next** to begin.
+
+## Project setup
+
+Select your new project above, then set the project ID:
 
 ```sh
 export PROJECT_ID=<walkthrough-project-id/>
@@ -17,16 +24,7 @@ gcloud config set project $PROJECT_ID
 
 ### Enable required APIs
 
-<walkthrough-enable-apis apis="run.googleapis.com,compute.googleapis.com,secretmanager.googleapis.com,artifactregistry.googleapis.com,cloudresourcemanager.googleapis.com"></walkthrough-enable-apis>
-
-```sh
-gcloud services enable \
-  run.googleapis.com \
-  compute.googleapis.com \
-  secretmanager.googleapis.com \
-  artifactregistry.googleapis.com \
-  cloudresourcemanager.googleapis.com
-```
+<walkthrough-enable-apis apis="cloudresourcemanager.googleapis.com"></walkthrough-enable-apis>
 
 ## Install Terraform
 
@@ -42,7 +40,7 @@ sudo apt-get update && sudo apt-get install -y terraform
 Navigate to the Terraform directory and initialize:
 
 ```sh
-cd ~/cloudshell_open/gcrunner/terraform
+cd terraform
 terraform init
 ```
 
@@ -53,12 +51,6 @@ Set the required Terraform variables:
 ```sh
 export TF_VAR_project_id=$PROJECT_ID
 export TF_VAR_region=us-central1
-```
-
-To enable the GCS build cache (optional but recommended):
-
-```sh
-export TF_VAR_enable_cache=true
 ```
 
 ### Apply the configuration
@@ -77,22 +69,14 @@ Type `yes` when prompted. Terraform will create:
 | Service accounts | Minimal IAM for function and runner VMs |
 | Artifact Registry | Remote repository for the gcrunner container image |
 | Secret Manager secrets | GitHub App credentials storage |
-| VPC + Firewall | Network isolation for runner VMs |
-| GCS bucket | Build cache storage (if enabled) |
-
-### Save the outputs
-
-```sh
-export SETUP_URL=$(terraform output -raw setup_url)
-echo "Setup URL: $SETUP_URL"
-```
+| GCS bucket | Build cache storage |
 
 ## Set up the GitHub App
 
-Open the setup URL in your browser:
+Get your setup URL and open it in your browser:
 
 ```sh
-echo $SETUP_URL
+terraform output -raw setup_url
 ```
 
 1. Click **Create GitHub App**
