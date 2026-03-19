@@ -189,7 +189,8 @@ func handleSetup(w http.ResponseWriter, r *http.Request) {
 
 	manifestJSON, err := json.Marshal(manifest)
 	if err != nil {
-		http.Error(w, "failed to marshal manifest", http.StatusInternalServerError)
+		log.Printf("ERROR: failed to marshal manifest: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -336,7 +337,7 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 	event := r.Header.Get("X-GitHub-Event")
 	if event != "workflow_job" {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "ignored event: %s", event)
+		fmt.Fprintf(w, "ok")
 		return
 	}
 
@@ -387,7 +388,7 @@ func HandleTask(w http.ResponseWriter, r *http.Request) {
 
 	// Verify the request comes from Cloud Tasks
 	if r.Header.Get("X-CloudTasks-TaskName") == "" {
-		http.Error(w, "not a Cloud Tasks request", http.StatusForbidden)
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
