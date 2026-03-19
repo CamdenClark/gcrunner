@@ -74,6 +74,8 @@ func TestClassifyInsertError(t *testing.T) {
 		{"quota exceeded", fmt.Errorf("QUOTA_EXCEEDED: insufficient regional quota"), insertErrorQuota},
 		{"not found", fmt.Errorf("RESOURCE_NOT_FOUND: machine type not available"), insertErrorFatal},
 		{"permission denied", fmt.Errorf("Permission denied on resource"), insertErrorFatal},
+		{"already exists", fmt.Errorf("The resource 'projects/foo/zones/us-central1-a/instances/gcrunner-123' already exists"), insertErrorAlreadyExists},
+		{"already exists camel", fmt.Errorf("alreadyExists"), insertErrorAlreadyExists},
 		{"zone exhausted", fmt.Errorf("ZONE_RESOURCE_POOL_EXHAUSTED"), insertErrorRetryable},
 		{"generic error", fmt.Errorf("some transient error"), insertErrorRetryable},
 	}
