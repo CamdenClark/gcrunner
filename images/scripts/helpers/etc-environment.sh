@@ -13,13 +13,13 @@ get_etc_environment_variable() {
 add_etc_environment_variable() {
     local variable_name=$1
     local variable_value=$2
-    echo "${variable_name}=${variable_value}" | tee -a /etc/environment
+    echo "${variable_name}=${variable_value}" | sudo tee -a /etc/environment
 }
 
 replace_etc_environment_variable() {
     local variable_name=$1
     local variable_value=$2
-    sed -i -e "s%^${variable_name}=.*$%${variable_name}=${variable_value}%" /etc/environment
+    sudo sed -i -e "s%^${variable_name}=.*$%${variable_name}=${variable_value}%" /etc/environment
 }
 
 set_etc_environment_variable() {
