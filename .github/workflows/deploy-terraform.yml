@@ -6,11 +6,35 @@ on:
     paths:
       - "terraform/**"
       - "orchestrator/**"
-      - "cache-server/**"
       - ".github/workflows/deploy-terraform.yml"
 
 jobs:
+  publish-orchestrator:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./orchestrator
+          push: true
+          tags: |
+            ghcr.io/camdenclark/gcrunner:latest
+            ghcr.io/camdenclark/gcrunner:${{ github.sha }}
+
   deploy:
+    needs: publish-orchestrator
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,7 +54,12 @@ jobs:
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -backend-config="prefix=gcrunner-main"
 
-      - name: Terraform Apply
+      - name: Terraform Plan
         run: |
-          terraform apply -auto-approve \
-            -var="project_id=${{ vars.TF_PROJECT_ID }}"
+          terraform plan \
+            -var="project_id=${{ vars.TF_PROJECT_ID }}" \
+            -var="gcrunner_version=${{ github.sha }}" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply tfplan
