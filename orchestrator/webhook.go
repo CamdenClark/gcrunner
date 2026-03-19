@@ -196,17 +196,32 @@ func handleSetup(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>gcrunner — Setup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f6f8fa; color: #24292f; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #fff; border: 1px solid #d0d7de; border-radius: 12px; padding: 2.5rem; max-width: 480px; width: 100%%; margin: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .logo { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .logo span { color: #0969da; }
+    .subtitle { color: #656d76; margin: 0 0 1.5rem; font-size: 0.95rem; }
+    .btn { display: inline-block; background: #2da44e; color: #fff; border: none; border-radius: 6px; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn:hover { background: #218838; }
+  </style>
+</head>
 <body>
-  <h1>gcrunner — GitHub App Setup</h1>
-  <p>Click the button below to create a GitHub App for gcrunner.</p>
-  <form action="https://github.com/settings/apps/new" method="post">
-    <input type="hidden" name="manifest" value='%s'>
-    <input type="hidden" name="state" value="%s">
-    <button type="submit" style="font-size:1.2em;padding:10px 20px;cursor:pointer;">
-      Create GitHub App
-    </button>
-  </form>
+  <div class="card">
+    <div class="logo"><span>gc</span>runner</div>
+    <p class="subtitle">Create a GitHub App to connect gcrunner to your repositories.</p>
+    <form action="https://github.com/settings/apps/new" method="post">
+      <input type="hidden" name="manifest" value='%s'>
+      <input type="hidden" name="state" value="%s">
+      <button type="submit" class="btn">Create GitHub App</button>
+    </form>
+  </div>
 </body>
 </html>`, string(manifestJSON), state)
 }
@@ -285,13 +300,34 @@ func handleSetupCallback(w http.ResponseWriter, r *http.Request) {
 	installURL := fmt.Sprintf("%s/installations/new", app.HTMLURL)
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>gcrunner — Setup Complete</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f6f8fa; color: #24292f; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #fff; border: 1px solid #d0d7de; border-radius: 12px; padding: 2.5rem; max-width: 480px; width: 100%%; margin: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .logo { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .logo span { color: #0969da; }
+    .success { color: #1a7f37; font-weight: 600; font-size: 1.1rem; margin: 0.5rem 0 1rem; }
+    .detail { color: #656d76; font-size: 0.9rem; margin: 0.35rem 0; }
+    .detail strong { color: #24292f; }
+    .saved { background: #dafbe1; color: #1a7f37; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.85rem; margin: 1rem 0; }
+    .btn { display: inline-block; background: #2da44e; color: #fff; text-decoration: none; border-radius: 6px; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; transition: background 0.15s; }
+    .btn:hover { background: #218838; }
+  </style>
+</head>
 <body>
-  <h1>GitHub App created!</h1>
-  <p><strong>App:</strong> %s</p>
-  <p><strong>App ID:</strong> %d</p>
-  <p>Credentials have been saved to Secret Manager.</p>
-  <p><a href="%s" style="font-size:1.2em;">Install the app on your repositories →</a></p>
+  <div class="card">
+    <div class="logo"><span>gc</span>runner</div>
+    <p class="success">GitHub App created</p>
+    <p class="detail"><strong>App:</strong> %s</p>
+    <p class="detail"><strong>App ID:</strong> %d</p>
+    <p class="saved">Credentials saved to Secret Manager.</p>
+    <a href="%s" class="btn">Install on your repositories &rarr;</a>
+  </div>
 </body>
 </html>`, app.Name, app.ID, installURL)
 
