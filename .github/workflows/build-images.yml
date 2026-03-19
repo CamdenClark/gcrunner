@@ -1,6 +1,11 @@
 name: Build GCE Runner Images
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'images/**'
+      - 'cache-server/**'
   schedule:
     - cron: '0 6 * * 1'  # Monday 6am UTC
   workflow_dispatch:
@@ -100,7 +105,6 @@ jobs:
             gh --version | head -1 && echo 'PASS: gh'
             node --version && echo 'PASS: node'
             python3 --version && echo 'PASS: python3'
-            go version && echo 'PASS: go'
             rustc --version && echo 'PASS: rust'
             java -version 2>&1 | head -1 && echo 'PASS: java'
             test -x /usr/local/bin/cache-server && echo 'PASS: cache-server'

@@ -12,7 +12,7 @@ source $HELPER_SCRIPTS/etc-environment.sh
 
 CACHE_DIR="/opt/actionarchivecache"
 mkdir -p "$CACHE_DIR"
-chmod 777 "$CACHE_DIR"
+chmod -R 777 "$CACHE_DIR"
 
 # Download the latest action-versions archive from GitHub
 archive_url=$(resolve_github_release_asset_url "actions/action-versions" 'endswith("action-versions.tar.gz")' "latest")
