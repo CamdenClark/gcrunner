@@ -59,6 +59,13 @@ resource "google_project_iam_member" "function_tasks_enqueuer" {
   member  = "serviceAccount:${google_service_account.function.email}"
 }
 
+# Function SA can create tasks that impersonate the tasks SA
+resource "google_service_account_iam_member" "function_uses_tasks" {
+  service_account_id = google_service_account.tasks.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.function.email}"
+}
+
 # Runner SA: self-delete VMs
 resource "google_project_iam_member" "runner_compute" {
   project = var.project_id
