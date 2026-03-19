@@ -51,6 +51,7 @@ Set the required Terraform variables:
 ```sh
 export TF_VAR_project_id=$PROJECT_ID
 export TF_VAR_region=us-central1
+export TF_VAR_gcrunner_version=v0.1.0
 ```
 
 ### Apply the configuration

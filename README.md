@@ -2,7 +2,7 @@
 
 Self-hosted GitHub Actions runners on Google Cloud. Drop-in replacement for GitHub-hosted runners at 80%+ cost savings.
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fcamdenclark%2Fgcrunner&cloudshell_tutorial=tutorial.md)
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fcamdenclark%2Fgcrunner&cloudshell_git_branch=v0.1.0&cloudshell_tutorial=tutorial.md)
 
 ## How it works
 
@@ -45,10 +45,11 @@ runs-on: gcrunner=${{ github.run_id }}/spot=false
 
 ## Deploying
 
-Deploy with Terraform in a single command:
+Clone the latest release and deploy with Terraform:
 
 ```sh
-cd terraform
+git clone --branch v0.1.0 https://github.com/camdenclark/gcrunner
+cd gcrunner/terraform
 terraform init
 terraform apply -var="project_id=YOUR_PROJECT_ID"
 ```
