@@ -63,3 +63,45 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply tfplan
+
+  smoke-test-n2d-go:
+    needs: deploy
+    runs-on: gcrunner=${{ github.run_id }}-n2d/machine=n2d-standard-2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Build orchestrator
+        run: cd orchestrator && go build ./...
+      - name: Test orchestrator
+        run: cd orchestrator && go test ./...
+
+  smoke-test-e2-node:
+    needs: deploy
+    runs-on: gcrunner=${{ github.run_id }}-e2/machine=e2-medium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Node smoke test
+        run: node -e "console.log('Node', process.version, 'on', process.arch, process.platform)"
+      - name: System info
+        run: |
+          echo "CPUs: $(nproc)"
+          echo "Memory: $(free -h | awk '/Mem:/{print $2}')"
+          df -h /
+
+  smoke-test-c3-go:
+    needs: deploy
+    runs-on: gcrunner=${{ github.run_id }}-c3/family=c3/cpu=4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Build cache-server
+        run: cd cache-server && go build ./...
+      - name: Test cache-server
+        run: cd cache-server && go test ./...
