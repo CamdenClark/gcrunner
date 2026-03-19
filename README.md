@@ -50,7 +50,8 @@ Clone the latest release and deploy with Terraform:
 ```sh
 git clone --branch v0.1.0 https://github.com/camdenclark/gcrunner
 cd gcrunner/terraform
-terraform init
+gcloud storage buckets create gs://YOUR_PROJECT_ID-gcrunner-tfstate --location=us-central1
+terraform init -backend-config="bucket=YOUR_PROJECT_ID-gcrunner-tfstate" -backend-config="prefix=gcrunner"
 terraform apply -var="project_id=YOUR_PROJECT_ID"
 ```
 

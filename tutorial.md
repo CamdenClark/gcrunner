@@ -37,11 +37,12 @@ sudo apt-get update && sudo apt-get install -y terraform
 
 ## Deploy infrastructure with Terraform
 
-Navigate to the Terraform directory and initialize:
+Navigate to the Terraform directory, create a GCS bucket for Terraform state, and initialize:
 
 ```sh
 cd terraform
-terraform init
+gcloud storage buckets create gs://${PROJECT_ID}-gcrunner-tfstate --location=us-central1
+terraform init -backend-config="bucket=${PROJECT_ID}-gcrunner-tfstate" -backend-config="prefix=gcrunner"
 ```
 
 ### Configure variables
@@ -74,7 +75,8 @@ Terraform will create:
 | Service accounts | Minimal IAM for function and runner VMs |
 | Artifact Registry | Remote repository for the gcrunner container image |
 | Secret Manager secrets | GitHub App credentials storage |
-| GCS bucket | Build cache storage |
+| GCS bucket (cache) | Build cache storage |
+| GCS bucket (tfstate) | Terraform remote state |
 
 ## Set up the GitHub App
 

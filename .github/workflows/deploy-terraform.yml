@@ -1,0 +1,36 @@
+name: Deploy Terraform (Main)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "orchestrator/**"
+      - "cache-server/**"
+      - ".github/workflows/deploy-terraform.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_DEPLOY }}
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="prefix=gcrunner-main"
+
+      - name: Terraform Apply
+        run: |
+          terraform apply -auto-approve \
+            -var="project_id=${{ vars.TF_PROJECT_ID }}"

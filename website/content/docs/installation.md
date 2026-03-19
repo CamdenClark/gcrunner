@@ -28,7 +28,8 @@ This opens an interactive tutorial that walks you through the full setup in abou
 | Service accounts | Minimal IAM for the service and runner VMs |
 | Artifact Registry | Remote repository for the gcrunner container image |
 | Secret Manager secrets | GitHub App credentials storage |
-| GCS bucket | Build cache storage |
+| GCS bucket (cache) | Build cache storage |
+| GCS bucket (tfstate) | Terraform remote state |
 
 ## Manual setup
 
@@ -45,7 +46,8 @@ If you prefer to deploy manually, you can use Terraform directly.
 ```sh
 git clone https://github.com/camdenclark/gcrunner.git
 cd gcrunner/terraform
-terraform init
+gcloud storage buckets create gs://YOUR_PROJECT_ID-gcrunner-tfstate --location=us-central1
+terraform init -backend-config="bucket=YOUR_PROJECT_ID-gcrunner-tfstate" -backend-config="prefix=gcrunner"
 terraform apply -var="project_id=YOUR_PROJECT_ID"
 ```
 
