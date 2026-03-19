@@ -103,13 +103,16 @@ func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerL
 			log.Printf("Created VM %s in %s (type=%s) for %s", instanceName, zone, machineType, repoFullName)
 			return nil
 		}
-		lastErr = err
 
 		kind := classifyInsertError(err)
 		switch kind {
+		case insertErrorAlreadyExists:
+			log.Printf("VM %s already exists in %s (duplicate webhook), skipping", instanceName, zone)
+			return nil
 		case insertErrorQuota, insertErrorFatal:
 			return fmt.Errorf("failed to create VM in %s: %w", zone, err)
 		default:
+			lastErr = err
 			log.Printf("Failed to create VM in %s: %v, trying next zone", zone, err)
 		}
 	}
@@ -272,6 +275,7 @@ const (
 	insertErrorRetryable insertErrorKind = iota
 	insertErrorQuota
 	insertErrorFatal
+	insertErrorAlreadyExists
 )
 
 // classifyInsertError categorizes a VM creation error to decide whether to retry.
@@ -282,6 +286,9 @@ func classifyInsertError(err error) insertErrorKind {
 	msg := err.Error()
 	if strings.Contains(msg, "QUOTA_EXCEEDED") {
 		return insertErrorQuota
+	}
+	if strings.Contains(msg, "alreadyExists") || strings.Contains(msg, "ALREADY_EXISTS") || strings.Contains(msg, "already exists") {
+		return insertErrorAlreadyExists
 	}
 	if strings.Contains(msg, "RESOURCE_NOT_FOUND") || strings.Contains(msg, "forbidden") || strings.Contains(msg, "Permission") {
 		return insertErrorFatal
