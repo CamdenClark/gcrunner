@@ -16,6 +16,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+var githubClient = &http.Client{Timeout: 30 * time.Second}
+
 // generateJITConfig creates a just-in-time runner configuration via the GitHub API.
 // This replaces the need for config.sh on the VM — the returned blob contains all
 // credentials and config needed to start the runner directly with ./run.sh --jitconfig.
@@ -50,7 +52,7 @@ func generateJITConfig(ctx context.Context, owner, repo, runnerName string, labe
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := githubClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +87,7 @@ func getRegistrationToken(ctx context.Context, owner, repo string) (string, erro
 	req.Header.Set("Authorization", "Bearer "+installationToken)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := githubClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -126,7 +128,7 @@ func getInstallationToken(ctx context.Context, owner string) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+appJWT)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := githubClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -156,7 +158,7 @@ func getInstallationID(ctx context.Context, appJWT, owner string) (int64, error)
 	req.Header.Set("Authorization", "Bearer "+appJWT)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := githubClient.Do(req)
 	if err != nil {
 		return 0, err
 	}
