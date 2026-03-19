@@ -15,7 +15,15 @@ import (
 const startupScriptTemplate = `#!/bin/bash
 set -euo pipefail
 
-JIT_CONFIG="%s"
+METADATA_URL="http://metadata.google.internal/computeMetadata/v1"
+METADATA_HEADER="Metadata-Flavor: Google"
+
+# Retrieve JIT config from instance metadata and delete it immediately
+JIT_CONFIG=$(curl -sf -H "${METADATA_HEADER}" "${METADATA_URL}/instance/attributes/jit-config")
+# Remove the metadata key so credentials are no longer queryable
+curl -sf -X DELETE -H "${METADATA_HEADER}" \
+  "${METADATA_URL}/instance/attributes/jit-config" || true
+
 CACHE_BUCKET="%s"
 REPO_OWNER="%s"
 REPO_NAME="%s"
@@ -54,7 +62,7 @@ func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerL
 	}
 
 	cacheBucket := os.Getenv("GCRUNNER_CACHE_BUCKET")
-	startupScript := fmt.Sprintf(startupScriptTemplate, jitConfig, cacheBucket, owner, repo)
+	startupScript := fmt.Sprintf(startupScriptTemplate, cacheBucket, owner, repo)
 
 	region := os.Getenv("GCE_REGION")
 	if region == "" {
@@ -90,7 +98,7 @@ func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerL
 			machineType = resolved
 		}
 
-		err := createInstance(ctx, instanceName, zone, machineType, labels, startupScript)
+		err := createInstance(ctx, instanceName, zone, machineType, labels, startupScript, jitConfig)
 		if err == nil {
 			log.Printf("Created VM %s in %s (type=%s) for %s", instanceName, zone, machineType, repoFullName)
 			return nil
@@ -109,7 +117,7 @@ func createRunnerVM(ctx context.Context, event WorkflowJobEvent, labels *RunnerL
 	return fmt.Errorf("failed to create VM in any zone: %w", lastErr)
 }
 
-func createInstance(ctx context.Context, name, zone, machineType string, labels *RunnerLabels, startupScript string) error {
+func createInstance(ctx context.Context, name, zone, machineType string, labels *RunnerLabels, startupScript, jitConfig string) error {
 	client, err := compute.NewInstancesRESTClient(ctx)
 	if err != nil {
 		return fmt.Errorf("create compute client: %w", err)
@@ -151,6 +159,10 @@ func createInstance(ctx context.Context, name, zone, machineType string, labels 
 				{
 					Key:   proto.String("startup-script"),
 					Value: proto.String(startupScript),
+				},
+				{
+					Key:   proto.String("jit-config"),
+					Value: proto.String(jitConfig),
 				},
 			},
 		},
