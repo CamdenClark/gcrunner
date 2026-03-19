@@ -44,6 +44,16 @@ if [ -n "${CACHE_BUCKET}" ] && [ -x /usr/local/bin/cache-server ]; then
   export ACTIONS_CACHE_SERVICE_V2=true
 fi
 
+# Source /etc/environment for image-configured variables (HOME, NVM_DIR,
+# XDG_CONFIG_HOME, PATH entries for cargo/pip, AGENT_TOOLSDIRECTORY, etc.)
+# sudo does not go through PAM login, so these are not loaded automatically.
+export HOME=/home/runner
+if [ -f /etc/environment ]; then
+  set -a
+  . /etc/environment
+  set +a
+fi
+
 # Run with JIT config (skips config.sh entirely)
 sudo -u runner -E ./run.sh --jitconfig "${JIT_CONFIG}"
 `
