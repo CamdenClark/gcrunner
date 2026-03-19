@@ -30,8 +30,8 @@ jobs:
           - ubuntu2404-x64
           - ubuntu2204-x64
         exclude:
-          - family: ${{ github.event.inputs.family != 'all' && github.event.inputs.family != 'ubuntu2404-x64' && 'ubuntu2404-x64' || '' }}
-          - family: ${{ github.event.inputs.family != 'all' && github.event.inputs.family != 'ubuntu2204-x64' && 'ubuntu2204-x64' || '' }}
+          - family: ${{ (github.event.inputs.family || 'all') != 'all' && (github.event.inputs.family || 'all') != 'ubuntu2404-x64' && 'ubuntu2404-x64' || '' }}
+          - family: ${{ (github.event.inputs.family || 'all') != 'all' && (github.event.inputs.family || 'all') != 'ubuntu2204-x64' && 'ubuntu2204-x64' || '' }}
 
     steps:
       - uses: actions/checkout@v4
