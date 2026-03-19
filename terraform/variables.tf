@@ -32,3 +32,9 @@ variable "function_name" {
   type        = string
   default     = "gcrunner-webhook"
 }
+
+variable "gcrunner_version" {
+  description = "gcrunner orchestrator image tag to deploy"
+  type        = string
+  default     = "latest"
+}

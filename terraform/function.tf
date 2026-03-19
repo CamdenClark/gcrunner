@@ -25,7 +25,7 @@ resource "google_cloud_run_v2_service" "webhook" {
     service_account = google_service_account.function.email
 
     containers {
-      image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_remote.repository_id}/camdenclark/gcrunner:latest"
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_remote.repository_id}/camdenclark/gcrunner:${var.gcrunner_version}"
 
       resources {
         limits = {
