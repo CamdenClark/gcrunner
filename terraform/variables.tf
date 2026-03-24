@@ -36,5 +36,5 @@ variable "function_name" {
 variable "gcrunner_version" {
   description = "gcrunner orchestrator image tag to deploy"
   type        = string
-  default     = "v0.1.0"
+  default     = "v0.2.0"
 }
