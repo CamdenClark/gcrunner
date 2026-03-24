@@ -3,6 +3,9 @@ languageCode = 'en-us'
 title = 'gcrunner'
 theme = 'hugo-book'
 
+[markup.goldmark.renderer]
+  unsafe = true
+
 [params]
   BookTheme = 'auto'
   BookToC = true
