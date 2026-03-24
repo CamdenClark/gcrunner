@@ -10,7 +10,7 @@ weight: 2
 The fastest way to deploy gcrunner is with Google Cloud Shell. It provides a pre-configured environment with everything you need.
 
 <a href="https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fcamdenclark%2Fgcrunner&cloudshell_tutorial=tutorial.md" target="_blank" rel="noopener noreferrer">
-  <img src="https://gstatic.com/cloudssh/images/open-btn.svg" alt="Open in Cloud Shell">
+  <img src="/open-btn.svg" alt="Open in Cloud Shell">
 </a>
 
 This opens an interactive tutorial that walks you through the full setup in about 15 minutes.
