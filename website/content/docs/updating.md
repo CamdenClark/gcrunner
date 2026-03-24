@@ -18,7 +18,7 @@ Updating gcrunner is a two-step process: check out the latest release, then run 
 ### 1. Check out the latest release
 
 ```sh
-git clone https://github.com/camdenclark/gcrunner
+git clone --branch v0.2.0 https://github.com/camdenclark/gcrunner
 cd gcrunner/terraform
 ```
 

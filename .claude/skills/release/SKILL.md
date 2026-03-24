@@ -17,7 +17,7 @@ First, confirm the version looks like a valid semver tag (e.g. `v0.2.0`). If not
 
 Read `terraform/variables.tf` and note the current `gcrunner_version` default so you can show what's changing.
 
-### 2. Update version in all three places
+### 2. Update version in all four places
 
 Update the version string from the old value to `$ARGUMENTS` in:
 
@@ -26,13 +26,14 @@ Update the version string from the old value to `$ARGUMENTS` in:
   - `cloudshell_git_branch=<old>` in the Cloud Shell badge URL
   - `git clone --branch <old>` in the deploy command
 - **`tutorial.md`** — `TF_VAR_gcrunner_version=<old>` in the configure variables step
+- **`website/content/docs/updating.md`** — `git clone --branch <old>` in the manual update step
 
 ### 3. Commit the version bump
 
-Stage and commit only those three files:
+Stage and commit only those four files:
 
 ```
-git add terraform/variables.tf README.md tutorial.md
+git add terraform/variables.tf README.md tutorial.md website/content/docs/updating.md
 git commit -m "Bump version to $ARGUMENTS"
 ```
 
