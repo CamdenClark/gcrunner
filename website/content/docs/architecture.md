@@ -12,19 +12,19 @@ gcrunner is built entirely on managed GCP services. There are no persistent serv
 ```mermaid
 graph TD
     GH[GitHub Actions]
-    CR[Cloud Run\northestrator]
-    CT[Cloud Tasks\nqueue]
+    CR[Cloud Run]
+    CT[Cloud Tasks]
     SM[Secret Manager]
-    GCE[Compute Engine VM\nephemeral runner]
-    GCS[GCS\nbuild cache]
+    GCE[Runner VM]
+    GCS[GCS Cache]
 
-    GH -- "workflow_job webhook\n(HMAC signed)" --> CR
-    CR -- "enqueue task\n(deduplicated)" --> CT
-    CT -- "POST /task/queued\n(OIDC auth)" --> CR
-    CR -- "read secrets\nat runtime" --> SM
-    CR -- "provision VM\n+ JIT config" --> GCE
-    GCE -- "run job\nread/write cache" --> GCS
-    GCE -- "self-destruct\non completion" --> GCE
+    GH -- webhook --> CR
+    CR -- enqueue --> CT
+    CT -- dispatch --> CR
+    CR -- secrets --> SM
+    CR -- provision --> GCE
+    GCE -- cache --> GCS
+    GCE -- self-destruct --> GCE
 ```
 
 ## Job Lifecycle
@@ -37,24 +37,21 @@ sequenceDiagram
     participant GH as GitHub Actions
     participant CR as Cloud Run
     participant CT as Cloud Tasks
-    participant API as GitHub API
     participant VM as Runner VM
 
     Dev->>GH: push / PR
-    GH->>CR: POST /webhook<br/>(workflow_job queued)
-    CR->>CR: verify HMAC signature
-    CR->>CT: enqueue task job-{id}-queued
-    CT->>CR: POST /task/queued (OIDC)
-    CR->>API: generate JIT config
-    CR->>VM: create VM + inject JIT config
-    VM->>VM: delete JIT config from metadata
-    VM->>GH: register runner (JIT)
+    GH->>CR: workflow_job queued
+    CR->>CT: enqueue job
+    CT->>CR: /task/queued
+    CR->>VM: create VM + JIT config
+    VM->>VM: delete JIT config
+    VM->>GH: register runner
     GH->>VM: dispatch job
     VM->>VM: execute steps
-    VM->>CR: webhook: workflow_job completed
-    CR->>CT: enqueue task job-{id}-completed
-    CT->>CR: POST /task/completed (OIDC)
-    CR->>VM: force-delete VM (safety net)
+    GH->>CR: workflow_job completed
+    CR->>CT: enqueue completion
+    CT->>CR: /task/completed
+    CR->>VM: force-delete
     VM->>VM: self-destruct
 ```
 
@@ -110,21 +107,21 @@ All GCP resources are managed by Terraform.
 
 ```mermaid
 graph LR
-    subgraph Cloud Run
-        SVCFN[gcrunner-function SA]
+    subgraph Orchestrator
+        SVCFN[gcrunner-function]
     end
 
-    subgraph Compute Engine
-        SVCRUN[gcrunner-runner SA]
+    subgraph Runner VM
+        SVCRUN[gcrunner-runner]
     end
 
-    subgraph Cloud Tasks
-        SVCTASK[gcrunner-tasks SA]
+    subgraph Queue
+        SVCTASK[gcrunner-tasks]
     end
 
-    SVCFN -- "compute.instanceAdmin\nsecretmanager.accessor\ncloudtasks.enqueuer" --> GCP[(GCP APIs)]
-    SVCRUN -- "compute.instanceAdmin\n(self only)\nstorage.objectAdmin" --> GCP
-    SVCTASK -- "run.invoker\n(Cloud Run only)" --> GCP
+    SVCFN -- "create VMs, read secrets, enqueue" --> GCP[(GCP APIs)]
+    SVCRUN -- "delete self, cache access" --> GCP
+    SVCTASK -- "invoke Cloud Run" --> GCP
 ```
 
 Three service accounts are used, each scoped to exactly what it needs:
@@ -141,13 +138,13 @@ When a job uses `family` or `cpu`/`ram` labels instead of an exact machine type,
 
 ```mermaid
 flowchart TD
-    A[Parse runs-on labels] --> B{machine mode?}
+    A[Parse labels] --> B{machine mode?}
     B -- exact --> C[Use machine= as-is]
-    B -- family --> D[Query available types\nin target zone]
-    B -- auto --> E[Query n2d types\nin target zone]
-    D --> F[Filter by family,\ncpu, ram constraints]
+    B -- family --> D[Query zone machine types]
+    B -- auto --> E[Query n2d machine types]
+    D --> F[Filter by cpu and ram]
     E --> F
-    F --> G[Pick smallest\nmatching type]
+    F --> G[Pick smallest match]
     G --> H[Create VM]
     C --> H
 ```
@@ -158,10 +155,10 @@ Spot VMs are used by default. If Spot capacity is unavailable in a zone, the orc
 
 ```mermaid
 flowchart LR
-    A[Try Spot VM\nin zone-a] -- capacity available --> Z[VM created]
-    A -- no capacity --> B[Try on-demand\nin zone-a]
-    B -- capacity available --> Z
-    B -- no capacity --> C[Try Spot VM\nin zone-b]
-    C -- capacity available --> Z
-    C -- ... --> D[Fail job]
+    A[Try Spot in zone-a] -- available --> Z[VM created]
+    A -- full --> B[Try on-demand in zone-a]
+    B -- available --> Z
+    B -- full --> C[Try Spot in zone-b]
+    C -- available --> Z
+    C -- full --> D[Fail job]
 ```
