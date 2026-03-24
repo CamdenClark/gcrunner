@@ -1,6 +1,6 @@
 ---
 title: "Job Labels"
-weight: 4
+weight: 3
 ---
 
 # Job Labels
