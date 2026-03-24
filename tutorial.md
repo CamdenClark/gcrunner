@@ -83,7 +83,7 @@ Terraform will create:
 Get your setup URL and open it in your browser:
 
 ```sh
-terraform output -raw setup_url
+terraform output -raw setup_url && echo
 ```
 
 1. Click **Create GitHub App**
