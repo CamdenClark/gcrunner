@@ -59,6 +59,10 @@ Then visit the setup URL from the Terraform output to create and install the Git
 
 For a guided walkthrough, use the **Open in Cloud Shell** button above.
 
+## Attribution
+
+gcrunner was heavily inspired by [runs-on](https://runs-on.com) and was mostly written to see if it was possible to build a similar solution on Google Cloud.
+
 ## Documentation
 
 Visit [gcrunner.com](https://gcrunner.com) for full documentation.

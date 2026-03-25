@@ -24,3 +24,7 @@ Completely open source and within your infrastructure.
 </a>
 
 Deploy in ~15 minutes with the guided Cloud Shell tutorial, or follow the [installation instructions]({{< relref "/docs/installation" >}}) for manual setup.
+
+## Attribution
+
+gcrunner was heavily inspired by [runs-on](https://runs-on.com) and was mostly written to see if it was possible to build a similar solution on Google Cloud.
